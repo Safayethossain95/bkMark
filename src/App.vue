@@ -42,11 +42,8 @@ const filteredBookmarks = computed(() => {
   if (!searchQuery.value) return bookmarks.value;
 
   const query = searchQuery.value.toLowerCase();
-  return bookmarks.value.filter(
-    (bookmark) =>
-      (bookmark.folderName?.toLowerCase() || "").includes(query) ||
-      (bookmark.urlName?.toLowerCase() || "").includes(query) ||
-      (bookmark.link?.toLowerCase() || "").includes(query)
+  return bookmarks.value.filter((bookmark) =>
+    (bookmark.name?.toLowerCase() || "").includes(query)
   );
 });
 
@@ -158,7 +155,7 @@ const addBookmark = async () => {
 
 const editBookmark = (bookmark) => {
   folderName.value = bookmark.folderName;
-  urlName.value = bookmark.urlName;
+  urlName.value = bookmark.name;
   link.value = bookmark.link;
   editingId.value = bookmark.id;
   formOpen.value = true;
@@ -584,7 +581,9 @@ onMounted(() => {
             >
               <span class="flex items-center gap-2">
                 <span class="text-lg">📁</span>
-                <span>{{ folder }}</span>
+                <span>{{
+                  folder && folder.length > 0 ? folder : "General"
+                }}</span>
               </span>
               <span
                 class="inline-flex items-center px-2 py-0.5 rounded-full text-sm font-medium bg-white/5 text-gray-200"
@@ -611,7 +610,7 @@ onMounted(() => {
                   />
                   <div class="min-w-0">
                     <h4 class="font-medium text-gray-100 truncate">
-                      {{ bookmark.urlName }}
+                      {{ bookmark.name }}
                     </h4>
                     <p
                       class="text-gray-300 hover:text-gray-100 text-sm break-all truncate"
