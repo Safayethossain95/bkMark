@@ -27,6 +27,7 @@ const urlName = ref("");
 const link = ref("");
 const editingId = ref(null);
 const formOpen = ref(false);
+const searchInput = ref(null);
 // Auth state
 const authUser = ref(null);
 const userId = ref(null);
@@ -239,7 +240,88 @@ const clearForm = () => {
   editingId.value = null;
 };
 
+// Open first search result when Enter is pressed
+const openFirstResult = () => {
+  if (filteredBookmarks.value.length > 0) {
+    const firstBookmark = filteredBookmarks.value[0];
+    window.open(firstBookmark.link, "_blank");
+  }
+};
 
+// Link all existing bookmarks to current user
+const linkAllBookmarks = async () => {
+  if (!userId.value) {
+    alert("Please log in first");
+    return;
+  }
+
+  if (
+    !confirm("This will link all existing bookmarks to your account. Continue?")
+  ) {
+    return;
+  }
+
+  try {
+    // Fetch all bookmarks without userId filter
+    const allBookmarksSnapshot = await getDocs(collection(db, "bookmarks"));
+    const bookmarkDocs = allBookmarksSnapshot.docs;
+
+    if (bookmarkDocs.length === 0) {
+      alert("No bookmarks found to link.");
+      return;
+    }
+
+    let successCount = 0;
+    let failureCount = 0;
+
+    // Update each bookmark with current user's userId
+    for (const docSnap of bookmarkDocs) {
+      try {
+        const docRef = doc(db, "bookmarks", docSnap.id);
+        const bookmarkData = docSnap.data();
+
+        await updateDoc(docRef, {
+          userId: userId.value,
+        });
+        successCount++;
+      } catch (error) {
+        console.error("Error updating bookmark:", docSnap.id, error);
+        failureCount++;
+      }
+    }
+
+    // Reload bookmarks
+    await loadBookmarks(userId.value);
+    console.log("Reloaded bookmarks. Current count:", bookmarks.value.length);
+
+    alert(
+      `Found ${bookmarkDocs.length} bookmarks. Updated: ${successCount}, Failed: ${failureCount}. Now showing: ${bookmarks.value.length}`
+    );
+  } catch (error) {
+    console.error("Error linking bookmarks:", error);
+    alert("Error linking bookmarks. Please try again.");
+  }
+};
+
+// Setup keyboard shortcut Ctrl+K for search focus and restore session
+onMounted(() => {
+  // Check for existing auth session
+  onAuthStateChanged(auth, async (user) => {
+    if (user) {
+      authUser.value = user;
+      userId.value = user.uid;
+      await loadBookmarks(user.uid);
+    }
+  });
+
+  // Keyboard shortcut Ctrl+K
+  window.addEventListener("keydown", (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === "k") {
+      e.preventDefault();
+      searchInput.value?.focus();
+    }
+  });
+});
 </script>
 
 <template>
@@ -296,9 +378,15 @@ const clearForm = () => {
             <div class="font-medium truncate mb-3">{{ authUser.email }}</div>
             <button
               @click="logout"
-              class="w-full px-3 py-2 bg-white/5 rounded-lg text-gray-200 hover:bg-white/10"
+              class="w-full px-3 py-2 bg-white/5 rounded-lg text-gray-200 hover:bg-white/10 mb-2"
             >
               Logout
+            </button>
+            <button
+              @click="linkAllBookmarks"
+              class="w-full px-3 py-2 bg-white/5 rounded-lg text-gray-200 hover:bg-white/10 text-sm"
+            >
+              Link All Bookmarks
             </button>
           </div>
 
@@ -363,9 +451,11 @@ const clearForm = () => {
       <div class="bg-transparent rounded-lg shadow-md p-4 mb-6">
         <div class="flex gap-2">
           <input
+            ref="searchInput"
             v-model="searchQuery"
             type="text"
             placeholder="Search bookmarks..."
+            @keydown.enter="openFirstResult"
             class="flex-1 px-4 py-2 bg-white/20 backdrop-blur-sm border border-white/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300 text-gray-200 placeholder-gray-200"
           />
           <button
