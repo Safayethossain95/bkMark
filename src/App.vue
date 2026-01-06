@@ -572,6 +572,7 @@ searchDebounceTimer = setTimeout(async () => {
       <SearchBar
         v-model:searchQuery="searchQuery"
         :formOpen="formOpen"
+        :filtered-bookmarks="filteredBookmarks"
         @toggle-form="
           () => {
             formOpen = !formOpen;

@@ -4,6 +4,11 @@ import { ref } from "vue";
 const props = defineProps({
   searchQuery: String,
   formOpen: Boolean,
+  // Receive the filtered list to access the first item
+  filteredBookmarks: {
+    type: Array,
+    default: () => [],
+  },
 });
 
 const emit = defineEmits(["update:searchQuery", "toggle-form"]);
@@ -20,6 +25,20 @@ function onInput(e) {
 function toggleForm() {
   emit("toggle-form");
 }
+
+function onEnter() {
+  // Check if we have any results
+  if (props.filteredBookmarks && props.filteredBookmarks.length > 0) {
+    const firstItem = props.filteredBookmarks[0];
+    if (firstItem && firstItem.link) {
+      // Open in new tab
+      window.open(firstItem.link, "_blank");
+      
+      // Optional: Clear search after opening
+      // emit("update:searchQuery", "");
+    }
+  }
+}
 </script>
 
 <template>
@@ -29,8 +48,9 @@ function toggleForm() {
         ref="inputRef"
         :value="searchQuery"
         @input="onInput"
+        @keydown.enter="onEnter"
         type="text"
-        placeholder="Search bookmarks..."
+        placeholder="Search bookmarks... (Press Enter to open first result)"
         class="flex-1 px-4 py-2 bg-white/20 backdrop-blur-sm border border-white/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300 text-gray-200 placeholder-gray-200"
       />
       <button
