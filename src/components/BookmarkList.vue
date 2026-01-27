@@ -130,7 +130,7 @@ function favicon(link) {
         </h3>
 
         <div v-show="!collapsedFolders[folder]" class="space-y-3">
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             <div
               v-for="bookmark in folderBookmarks"
               :key="bookmark.id"

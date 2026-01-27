@@ -568,7 +568,7 @@ searchDebounceTimer = setTimeout(async () => {
       @select-theme="selectTheme"
     />
 
-    <div class="max-w-3xl mx-auto" v-if="authUser">
+    <div class="max-w-6xl mx-auto" v-if="authUser">
       <SearchBar
         v-model:searchQuery="searchQuery"
         :formOpen="formOpen"
