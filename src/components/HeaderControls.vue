@@ -1,82 +1,98 @@
 <script setup>
 const props = defineProps({
   authUser: Object,
-  authDropdown: Boolean,
   themeDropdown: Boolean,
   themes: Array,
   selectedTheme: Object,
-  authMode: String,
-  authEmail: String,
-  authPassword: String,
-  authError: String,
+  accountDropdown: Boolean,
   previewStyle: Function,
 });
 
 const emit = defineEmits([
-  "update:authDropdown",
   "update:themeDropdown",
-  "update:authEmail",
-  "update:authPassword",
-  "update:authMode",
-  "login",
-  "signup",
+  "update:accountDropdown",
   "logout",
   "select-theme",
 ]);
 
-function toggleAuth() {
-  emit("update:authDropdown", !props.authDropdown);
+function toggleAccount() {
+  emit("update:accountDropdown", !props.accountDropdown);
   emit("update:themeDropdown", false);
 }
 
 function toggleTheme() {
   emit("update:themeDropdown", !props.themeDropdown);
-  emit("update:authDropdown", false);
+  emit("update:accountDropdown", false);
 }
 
-function updateEmail(e) {
-  emit("update:authEmail", e.target.value);
-}
-
-function updatePassword(e) {
-  emit("update:authPassword", e.target.value);
-}
-
-function setMode(mode) {
-  emit("update:authMode", mode);
+function isSelectedTheme(theme) {
+  return props.selectedTheme?.name === theme.name;
 }
 </script>
 
 <template>
   <div>
-    <div class="absolute top-6 right-16 mr-3">
+    <div
+      class="absolute top-6 mr-3"
+      :class="authUser ? 'right-16' : 'right-6'"
+    >
       <div class="relative">
         <button
           @click="toggleTheme"
-          class="w-11 h-11 rounded-full bg-white/6 border border-white/10 flex items-center justify-center text-gray-200 hover:bg-white/10 transition"
+          class="group inline-flex h-11 w-11 items-center justify-center rounded-full border border-cyan-100/20 bg-slate-900/60 text-cyan-50 shadow-lg shadow-slate-950/30 backdrop-blur-xl transition hover:bg-slate-800/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/70"
           aria-label="Themes"
         >
           <div
             :style="previewStyle(selectedTheme)"
-            class="w-8 h-8 rounded-full object-cover"
+            class="h-7 w-7 rounded-full border border-white/30 object-cover transition group-hover:scale-105"
           ></div>
         </button>
 
         <div
           v-show="themeDropdown"
-          class="mt-2 w-48 z-[9999] bg-white/6 backdrop-blur-md border border-white/10 rounded-lg p-2 text-gray-200 shadow-lg right-0 absolute"
+          class="absolute right-0 z-[9999] mt-2 w-72 rounded-2xl border border-cyan-100/20 bg-slate-900/70 p-3 text-cyan-50 shadow-xl shadow-slate-950/40 backdrop-blur-xl"
         >
+          <div class="mb-2 px-1">
+            <p class="text-xs font-medium uppercase tracking-wide text-cyan-100/70">
+              Color Theme
+            </p>
+          </div>
+
           <div
             v-for="theme in themes"
             :key="theme.name"
-            class="flex items-center gap-3 p-2 rounded-md hover:bg-white/5 cursor-pointer"
+            class="mb-1 flex cursor-pointer items-center gap-3 rounded-xl border p-2.5 transition"
+            :class="
+              isSelectedTheme(theme)
+                ? 'border-cyan-200/40 bg-cyan-500/15'
+                : 'border-transparent hover:border-cyan-100/20 hover:bg-white/5'
+            "
             @click="$emit('select-theme', theme)"
           >
             <div
               :style="previewStyle(theme)"
-              class="w-8 h-8 rounded-sm object-cover"
+              class="h-9 w-9 rounded-lg border border-white/25 object-cover"
             ></div>
-            <div class="text-sm truncate">{{ theme.name }}</div>
+            <div class="min-w-0 flex-1">
+              <div class="truncate text-sm font-medium text-white">{{ theme.name }}</div>
+              <div class="text-xs text-cyan-100/65">
+                {{ theme.type === "image" ? "Photo background" : "Gradient palette" }}
+              </div>
+            </div>
+            <svg
+              v-if="isSelectedTheme(theme)"
+              xmlns="http://www.w3.org/2000/svg"
+              class="h-4 w-4 text-cyan-100"
+              viewBox="0 0 20 20"
+              fill="currentColor"
+              aria-hidden="true"
+            >
+              <path
+                fill-rule="evenodd"
+                d="M16.707 5.293a1 1 0 010 1.414l-7.25 7.25a1 1 0 01-1.414 0l-3.75-3.75a1 1 0 011.414-1.414l3.043 3.043 6.543-6.543a1 1 0 011.414 0z"
+                clip-rule="evenodd"
+              />
+            </svg>
           </div>
         </div>
       </div>
@@ -86,100 +102,28 @@ function setMode(mode) {
       <img src="/images/logo.png" class="h-[20px]" alt="" />
     </div>
 
-    <div class="absolute top-6 right-6 z-50">
+    <div v-if="authUser" class="absolute top-6 right-6 z-50">
       <div class="relative">
         <button
-          @click="toggleAuth"
+          @click="toggleAccount"
           class="w-11 h-11 rounded-full bg-white/6 border border-white/10 flex items-center justify-center text-gray-200 hover:bg-white/10 transition"
           aria-label="Account"
         >
-          <span v-if="authUser" class="text-sm">{{
-            authUser.email?.charAt(0).toUpperCase()
-          }}</span>
-          <svg
-            v-else
-            xmlns="http://www.w3.org/2000/svg"
-            class="w-5 h-5"
-            viewBox="0 0 20 20"
-            fill="currentColor"
-          >
-            <path
-              fill-rule="evenodd"
-              d="M10 2a4 4 0 100 8 4 4 0 000-8zm-7 16a7 7 0 0114 0H3z"
-              clip-rule="evenodd"
-            />
-          </svg>
+          <span class="text-sm">{{ authUser.email?.charAt(0).toUpperCase() }}</span>
         </button>
 
         <div
-          v-show="authDropdown"
+          v-show="accountDropdown"
           class="mt-2 w-64 bg-white/6 backdrop-blur-md border border-white/10 rounded-lg p-4 text-gray-200 shadow-lg right-0 absolute"
         >
-          <div v-if="authUser">
-            <div class="text-sm mb-3">Signed in as</div>
-            <div class="font-medium truncate mb-3">{{ authUser.email }}</div>
-            <button
-              @click="$emit('logout')"
-              class="w-full px-3 py-2 bg-white/5 rounded-lg text-gray-200 hover:bg-white/10 mb-2"
-            >
-              Logout
-            </button>
-          </div>
-
-          <div v-else>
-            <div class="flex gap-2 mb-3">
-              <button
-                @click="setMode('login')"
-                :class="authMode === 'login' ? 'bg-white/10' : ''"
-                class="flex-1 px-2 py-1 rounded-lg"
-              >
-                Login
-              </button>
-              <button
-                @click="setMode('signup')"
-                :class="authMode === 'signup' ? 'bg-white/10' : ''"
-                class="flex-1 px-2 py-1 rounded-lg"
-              >
-                Sign up
-              </button>
-            </div>
-
-            <div class="space-y-2">
-              <input
-                :value="authEmail"
-                @input="updateEmail"
-                type="email"
-                placeholder="Email"
-                class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-gray-200"
-              />
-              <input
-                :value="authPassword"
-                @input="updatePassword"
-                type="password"
-                placeholder="Password"
-                class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-gray-200"
-              />
-              <div class="text-sm text-red-400" v-if="authError">
-                {{ authError }}
-              </div>
-              <div class="flex gap-2 mt-2">
-                <button
-                  v-if="authMode === 'login'"
-                  @click="$emit('login')"
-                  class="flex-1 px-3 py-2 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-lg text-white"
-                >
-                  Login
-                </button>
-                <button
-                  v-else
-                  @click="$emit('signup')"
-                  class="flex-1 px-3 py-2 bg-gradient-to-r from-green-500 to-emerald-500 rounded-lg text-white"
-                >
-                  Create
-                </button>
-              </div>
-            </div>
-          </div>
+          <div class="text-sm mb-3">Signed in as</div>
+          <div class="font-medium truncate mb-3">{{ authUser.email }}</div>
+          <button
+            @click="$emit('logout')"
+            class="w-full px-3 py-2 bg-white/5 rounded-lg text-gray-200 hover:bg-white/10"
+          >
+            Logout
+          </button>
         </div>
       </div>
     </div>

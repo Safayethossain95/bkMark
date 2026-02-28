@@ -29,29 +29,37 @@ function favicon(link) {
   const d = domain(link);
   return d ? `https://www.google.com/s2/favicons?domain=${d}` : "";
 }
+
+function displayFolder(folder) {
+  return folder && folder.trim().length > 0 ? folder : "General";
+}
+
+function bookmarkCountLabel(count) {
+  return `${count} bookmark${count === 1 ? "" : "s"}`;
+}
 </script>
 
 <template>
-  <div ref="resultsRef" class="space-y-4">
+  <div ref="resultsRef" class="space-y-5">
     <div
       v-if="bookmarks.length > 0"
-      class="flex items-center justify-between mb-4"
+      class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
     >
-      <span class="text-sm text-gray-300"
-        >{{ bookmarks.length }} bookmark{{
-          bookmarks.length !== 1 ? "s" : ""
-        }}</span
-      >
-      <div class="flex items-center gap-2">
+      <div>
+        <p class="text-sm text-cyan-100/80">Saved Collection</p>
+        <p class="text-base font-semibold text-white">
+          {{ bookmarkCountLabel(bookmarks.length) }}
+        </p>
+      </div>
+      <div class="flex items-center gap-2 self-start sm:self-auto">
         <button
           @click="$emit('expand-all')"
-          class="p-2 rounded-lg bg-white/5 border border-white/10 text-gray-200 hover:bg-white/10 transition"
+          class="inline-flex items-center gap-2 rounded-xl border border-cyan-200/25 bg-cyan-400/10 px-3 py-2 text-sm font-medium text-cyan-50 transition hover:bg-cyan-400/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/70"
           title="Expand all folders"
         >
-          <!-- icon omitted for brevity -->
           <svg
             xmlns="http://www.w3.org/2000/svg"
-            class="w-5 h-5"
+            class="h-4 w-4"
             viewBox="0 0 20 20"
             fill="currentColor"
           >
@@ -61,15 +69,16 @@ function favicon(link) {
               clip-rule="evenodd"
             />
           </svg>
+          <span>Expand all</span>
         </button>
         <button
           @click="$emit('collapse-all')"
-          class="p-2 rounded-lg bg-white/5 border border-white/10 text-gray-200 hover:bg-white/10 transition"
+          class="inline-flex items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-sm font-medium text-white/90 transition hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
           title="Collapse all folders"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
-            class="w-5 h-5"
+            class="h-4 w-4"
             viewBox="0 0 20 20"
             fill="currentColor"
           >
@@ -79,24 +88,30 @@ function favicon(link) {
               clip-rule="evenodd"
             />
           </svg>
+          <span>Collapse all</span>
         </button>
       </div>
     </div>
 
     <div
       v-if="bookmarks.length === 0"
-      class="bg-white/20 backdrop-blur-md rounded-lg shadow-lg border border-white/30 p-8 text-center"
+      class="rounded-2xl border border-cyan-100/20 bg-slate-900/60 p-10 text-center shadow-xl shadow-slate-950/30 backdrop-blur-xl"
     >
-      <p class="text-gray-500 text-lg">
-        No bookmarks yet. Add your first bookmark above!
+      <p class="text-lg font-semibold text-cyan-50">No bookmarks yet</p>
+      <p class="mt-2 text-sm text-cyan-100/70">
+        Add your first bookmark from the form above to start building your
+        collection.
       </p>
     </div>
 
     <div
       v-else-if="filteredBookmarks.length === 0"
-      class="bg-white/20 backdrop-blur-md rounded-lg shadow-lg border border-white/30 p-8 text-center"
+      class="rounded-2xl border border-cyan-100/20 bg-slate-900/60 p-10 text-center shadow-xl shadow-slate-950/30 backdrop-blur-xl"
     >
-      <p class="text-gray-500 text-lg">No bookmarks match your search.</p>
+      <p class="text-lg font-semibold text-cyan-50">No matches found</p>
+      <p class="mt-2 text-sm text-cyan-100/70">
+        Try another keyword, URL fragment, or folder name.
+      </p>
     </div>
 
     <div v-else>
@@ -104,70 +119,82 @@ function favicon(link) {
         v-for="(folderBookmarks, folder) in groupedBookmarks"
         :key="folder"
         :data-folder="folder"
-        class="bg-white/20 backdrop-blur-md rounded-lg shadow-lg border border-white/30 p-6 mb-4"
+        class="mb-4 overflow-hidden rounded-2xl border border-cyan-100/20 bg-slate-900/60 shadow-xl shadow-slate-950/30 backdrop-blur-xl"
       >
         <h3
-          class="flex items-center justify-between text-xl font-semibold text-gray-100 mb-4 border-b pb-2"
+          class="flex flex-wrap items-center justify-between gap-3 border-b border-cyan-100/10 px-5 py-4 text-cyan-50"
         >
           <span class="flex items-center gap-2">
             <button
               @click="$emit('toggle-folder', folder)"
-              class="text-lg hover:opacity-70 transition"
+              class="grid h-8 w-8 place-content-center rounded-lg border border-cyan-100/20 bg-white/5 text-cyan-100 transition hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/70"
               :data-chevron="folder"
+              :aria-label="`Toggle ${displayFolder(folder)} folder`"
             >
               <ChevronRightIcon
                 :class="collapsedFolders[folder] ? 'rotate-0' : 'rotate-90'"
-                class="w-5 h-5 transition-transform duration-300"
+                class="h-5 w-5 transition-transform duration-300"
               />
             </button>
-            <span class="text-lg">📁</span>
-            <span>{{ folder && folder.length > 0 ? folder : "General" }}</span>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="h-5 w-5 text-cyan-100/90"
+              viewBox="0 0 20 20"
+              fill="currentColor"
+              aria-hidden="true"
+            >
+              <path
+                d="M2 5a2 2 0 012-2h3.2a2 2 0 011.6.8l.6.8a2 2 0 001.6.8H16a2 2 0 012 2v6a3 3 0 01-3 3H5a3 3 0 01-3-3V5z"
+              />
+            </svg>
+            <span class="text-lg font-semibold">{{ displayFolder(folder) }}</span>
           </span>
           <span
-            class="inline-flex items-center px-2 py-0.5 rounded-full text-sm font-medium bg-white/5 text-gray-200"
+            class="inline-flex items-center rounded-full border border-cyan-100/20 bg-cyan-500/15 px-2.5 py-1 text-xs font-semibold uppercase tracking-wide text-cyan-100"
             >{{ folderBookmarks.length }}</span
           >
         </h3>
 
-        <div v-show="!collapsedFolders[folder]" class="space-y-3">
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+        <div v-show="!collapsedFolders[folder]" class="p-4">
+          <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
             <div
               v-for="bookmark in folderBookmarks"
               :key="bookmark.id"
-              class="bookmark-row flex items-center justify-between gap-4 p-3 bg-white/6 backdrop-blur-sm rounded-lg border border-white/10 hover:shadow-lg hover:scale-[1.01] transition-transform duration-150 will-change-transform"
+              class="bookmark-row group flex items-center gap-3 rounded-xl border border-cyan-100/10 bg-gradient-to-br from-white/10 to-white/5 p-3 shadow-md shadow-slate-950/20 transition duration-200 hover:-translate-y-0.5 hover:border-cyan-100/25 hover:shadow-lg hover:shadow-slate-950/35"
             >
               <a
                 :href="bookmark.link"
                 target="_blank"
                 rel="noopener noreferrer"
-                class="flex items-center gap-4 flex-1 min-w-0 cursor-pointer"
+                class="flex min-w-0 flex-1 items-center gap-3 rounded-lg p-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/70"
               >
                 <img
                   :src="favicon(bookmark.link)"
                   alt="favicon"
-                  class="w-5 h-5 rounded-sm flex-shrink-0"
+                  class="h-5 w-5 flex-shrink-0 rounded-sm ring-1 ring-white/20"
+                  loading="lazy"
                 />
                 <div class="min-w-0">
-                  <h4 class="font-medium text-gray-100 truncate">
+                  <h4 class="truncate text-sm font-semibold text-white">
                     {{ bookmark.name }}
                   </h4>
                   <p
-                    class="text-gray-300 hover:text-gray-100 text-sm break-all truncate"
+                    class="truncate text-xs text-cyan-100/70 transition group-hover:text-cyan-100/90"
                   >
                     {{ domain(bookmark.link) || bookmark.link }}
                   </p>
                 </div>
               </a>
 
-              <div class="flex items-center gap-2">
+              <div class="flex items-center gap-1.5">
                 <button
                   @click="$emit('edit', bookmark)"
                   aria-label="Edit"
-                  class="w-9 h-9 flex items-center justify-center bg-white/5 border border-white/10 text-gray-200 rounded-full hover:bg-white/10 transition duration-150"
+                  class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-cyan-100/20 bg-white/10 text-cyan-100 transition hover:bg-cyan-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/70"
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
-                    class="w-4 h-4"
+                    class="h-4 w-4"
                     viewBox="0 0 20 20"
                     fill="currentColor"
                   >
@@ -181,11 +208,11 @@ function favicon(link) {
                 <button
                   @click="$emit('delete', bookmark.id)"
                   aria-label="Delete"
-                  class="w-9 h-9 flex items-center justify-center bg-white/5 border border-white/10 text-gray-200 rounded-full hover:bg-white/10 transition duration-150"
+                  class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-red-300/30 bg-red-500/10 text-red-100 transition hover:bg-red-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-300/70"
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
-                    class="w-4 h-4"
+                    class="h-4 w-4"
                     viewBox="0 0 20 20"
                     fill="currentColor"
                   >

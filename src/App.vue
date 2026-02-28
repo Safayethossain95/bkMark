@@ -1,7 +1,9 @@
 <script setup>
 import {
   createUserWithEmailAndPassword,
+  GoogleAuthProvider,
   onAuthStateChanged,
+  signInWithPopup,
   signInWithEmailAndPassword,
   signOut,
 } from "firebase/auth";
@@ -20,6 +22,7 @@ import { computed, nextTick, onMounted, ref, watch } from "vue";
 import BookmarkForm from "./components/BookmarkForm.vue";
 import BookmarkList from "./components/BookmarkList.vue";
 import HeaderControls from "./components/HeaderControls.vue";
+import LoginPanel from "./components/LoginPanel.vue";
 import SearchBar from "./components/SearchBar.vue";
 import { auth, db } from "./firebase";
 
@@ -37,7 +40,7 @@ const searchInput = ref(null);
 // Auth state
 const authUser = ref(null);
 const userId = ref(null);
-const authDropdown = ref(false);
+const accountDropdown = ref(false);
 const themeDropdown = ref(false);
 const authMode = ref("login");
 const authEmail = ref("");
@@ -188,7 +191,7 @@ const signup = async () => {
     });
     authEmail.value = "";
     authPassword.value = "";
-    authDropdown.value = false;
+    accountDropdown.value = false;
   } catch (e) {
     authError.value = (e.code ? e.code + ": " : "") + e.message;
   }
@@ -208,7 +211,32 @@ const login = async () => {
     await loadBookmarks(userCredential.user.uid);
     authEmail.value = "";
     authPassword.value = "";
-    authDropdown.value = false;
+    accountDropdown.value = false;
+  } catch (e) {
+    authError.value = (e.code ? e.code + ": " : "") + e.message;
+  }
+};
+
+const loginWithGoogle = async () => {
+  authError.value = "";
+  try {
+    const provider = new GoogleAuthProvider();
+    const userCredential = await signInWithPopup(auth, provider);
+    authUser.value = userCredential.user;
+    userId.value = userCredential.user.uid;
+
+    await setDoc(
+      doc(db, "users", userCredential.user.uid),
+      {
+        email: userCredential.user.email,
+        uid: userCredential.user.uid,
+        createdAt: new Date(),
+      },
+      { merge: true }
+    );
+
+    await loadBookmarks(userCredential.user.uid);
+    accountDropdown.value = false;
   } catch (e) {
     authError.value = (e.code ? e.code + ": " : "") + e.message;
   }
@@ -218,7 +246,9 @@ const logout = async () => {
   try {
     await signOut(auth);
     authUser.value = null;
-    authDropdown.value = false;
+    userId.value = null;
+    bookmarks.value = [];
+    accountDropdown.value = false;
   } catch (e) {
     console.error("Logout error:", e);
   }
@@ -385,14 +415,44 @@ const collapsedFolders = ref({});
 
 const themes = ref([
   {
-    name: "Deep Space",
+    name: "Ocean Drift",
     type: "gradient",
-    value: "linear-gradient(135deg,#000428 0%,#004e92 100%)",
+    value: "linear-gradient(135deg, #0b1f3a 0%, #126e82 55%, #4fd3c4 100%)",
+  },
+  {
+    name: "Sunset Bloom",
+    type: "gradient",
+    value: "linear-gradient(135deg, #371b58 0%, #c84b31 55%, #fcbf49 100%)",
+  },
+  {
+    name: "Mint Glow",
+    type: "gradient",
+    value: "linear-gradient(135deg, #0f2027 0%, #2c5364 45%, #7fffd4 100%)",
+  },
+  {
+    name: "Peach Mist",
+    type: "gradient",
+    value: "linear-gradient(135deg, #3a1c71 0%, #d76d77 48%, #ffaf7b 100%)",
+  },
+  {
+    name: "Lagoon Sky",
+    type: "gradient",
+    value: "linear-gradient(135deg, #0b132b 0%, #1c2541 35%, #3a86ff 100%)",
+  },
+  {
+    name: "Aurora Veil",
+    type: "gradient",
+    value: "linear-gradient(135deg, #1f1147 0%, #006d77 45%, #83c5be 100%)",
+  },
+  {
+    name: "Blush Cream",
+    type: "gradient",
+    value: "linear-gradient(135deg, #fdf0d5 0%, #f7cad0 40%, #cdb4db 100%)",
   },
   // Keep image options too if desired
   { name: "Default Image", type: "image", value: "/images/background.png" },
   {
-    name: "Black-gradiant Image",
+    name: "Noir Gradient Image",
     type: "image",
     value: "/images/black-gd.jpg",
   },
@@ -548,22 +608,13 @@ searchDebounceTimer = setTimeout(async () => {
   >
     <HeaderControls
       :authUser="authUser"
-      :authDropdown="authDropdown"
       :themeDropdown="themeDropdown"
       :themes="themes"
       :selectedTheme="selectedTheme"
-      :authMode="authMode"
-      :authEmail="authEmail"
-      :authPassword="authPassword"
-      :authError="authError"
+      :accountDropdown="accountDropdown"
       :previewStyle="previewStyle"
-      @update:authDropdown="(val) => (authDropdown = val)"
       @update:themeDropdown="(val) => (themeDropdown = val)"
-      @update:authEmail="(val) => (authEmail = val)"
-      @update:authPassword="(val) => (authPassword = val)"
-      @update:authMode="(val) => (authMode = val)"
-      @login="login"
-      @signup="signup"
+      @update:accountDropdown="(val) => (accountDropdown = val)"
       @logout="logout"
       @select-theme="selectTheme"
     />
@@ -610,14 +661,18 @@ searchDebounceTimer = setTimeout(async () => {
     </div>
 
     <div v-else class="absolute inset-0 flex items-center justify-center px-4">
-      <div
-        class="bg-white/10 backdrop-blur-md border border-white/20 rounded-lg p-8 text-center"
-      >
-        <h2 class="text-2xl font-bold text-gray-100 mb-2">Please Log In</h2>
-        <p class="text-gray-400 mb-6">
-          Click the button in the top-right to sign up or log in
-        </p>
-      </div>
+      <LoginPanel
+        :authMode="authMode"
+        :authEmail="authEmail"
+        :authPassword="authPassword"
+        :authError="authError"
+        @update:authMode="(val) => (authMode = val)"
+        @update:authEmail="(val) => (authEmail = val)"
+        @update:authPassword="(val) => (authPassword = val)"
+        @login="login"
+        @signup="signup"
+        @google-login="loginWithGoogle"
+      />
     </div>
   </div>
 </template>
