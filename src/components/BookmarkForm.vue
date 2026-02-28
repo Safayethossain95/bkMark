@@ -58,19 +58,11 @@ function cancel() {
 </script>
 
 <template>
-  <Transition
-    enter-active-class="transition duration-200 ease-out"
-    enter-from-class="opacity-0 -translate-y-2"
-    enter-to-class="opacity-100 translate-y-0"
-    leave-active-class="transition duration-150 ease-in"
-    leave-from-class="opacity-100 translate-y-0"
-    leave-to-class="opacity-0 -translate-y-1"
+  <section
+    v-show="formVisible"
+    ref="formEl"
+    class="mb-6 overflow-hidden rounded-2xl border border-cyan-100/20 bg-slate-900/60 shadow-xl shadow-slate-950/30 backdrop-blur-xl"
   >
-    <section
-      v-show="formVisible"
-      ref="formEl"
-      class="mb-6 overflow-hidden rounded-2xl border border-cyan-100/20 bg-slate-900/60 shadow-xl shadow-slate-950/30 backdrop-blur-xl"
-    >
       <header
         class="flex items-start justify-between gap-3 border-b border-cyan-100/10 px-5 py-4"
       >
@@ -204,6 +196,5 @@ function cancel() {
           </button>
         </div>
       </form>
-    </section>
-  </Transition>
+  </section>
 </template>

@@ -4,25 +4,17 @@ const props = defineProps({
   themeDropdown: Boolean,
   themes: Array,
   selectedTheme: Object,
-  accountDropdown: Boolean,
   previewStyle: Function,
 });
 
 const emit = defineEmits([
   "update:themeDropdown",
-  "update:accountDropdown",
-  "logout",
+  "open-account",
   "select-theme",
 ]);
 
-function toggleAccount() {
-  emit("update:accountDropdown", !props.accountDropdown);
-  emit("update:themeDropdown", false);
-}
-
 function toggleTheme() {
   emit("update:themeDropdown", !props.themeDropdown);
-  emit("update:accountDropdown", false);
 }
 
 function isSelectedTheme(theme) {
@@ -103,29 +95,15 @@ function isSelectedTheme(theme) {
     </div>
 
     <div v-if="authUser" class="absolute top-6 right-6 z-50">
-      <div class="relative">
-        <button
-          @click="toggleAccount"
-          class="w-11 h-11 rounded-full bg-white/6 border border-white/10 flex items-center justify-center text-gray-200 hover:bg-white/10 transition"
-          aria-label="Account"
-        >
-          <span class="text-sm">{{ authUser.email?.charAt(0).toUpperCase() }}</span>
-        </button>
-
-        <div
-          v-show="accountDropdown"
-          class="mt-2 w-64 bg-white/6 backdrop-blur-md border border-white/10 rounded-lg p-4 text-gray-200 shadow-lg right-0 absolute"
-        >
-          <div class="text-sm mb-3">Signed in as</div>
-          <div class="font-medium truncate mb-3">{{ authUser.email }}</div>
-          <button
-            @click="$emit('logout')"
-            class="w-full px-3 py-2 bg-white/5 rounded-lg text-gray-200 hover:bg-white/10"
-          >
-            Logout
-          </button>
-        </div>
-      </div>
+      <button
+        @click="$emit('open-account')"
+        class="inline-flex h-11 w-11 items-center justify-center rounded-full border border-cyan-100/20 bg-slate-900/60 text-cyan-50 shadow-lg shadow-slate-950/30 backdrop-blur-xl transition hover:bg-slate-800/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/70"
+        aria-label="Open account"
+      >
+        <span class="text-sm font-semibold">{{
+          authUser.email?.charAt(0).toUpperCase()
+        }}</span>
+      </button>
     </div>
   </div>
 </template>

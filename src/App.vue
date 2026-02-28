@@ -19,6 +19,7 @@ import {
   where,
 } from "firebase/firestore";
 import { computed, nextTick, onMounted, ref, watch } from "vue";
+import AccountModal from "./components/AccountModal.vue";
 import BookmarkForm from "./components/BookmarkForm.vue";
 import BookmarkList from "./components/BookmarkList.vue";
 import HeaderControls from "./components/HeaderControls.vue";
@@ -40,12 +41,22 @@ const searchInput = ref(null);
 // Auth state
 const authUser = ref(null);
 const userId = ref(null);
-const accountDropdown = ref(false);
+const accountModalOpen = ref(false);
 const themeDropdown = ref(false);
 const authMode = ref("login");
 const authEmail = ref("");
 const authPassword = ref("");
 const authError = ref("");
+const friends = ref([]);
+const friendsLoading = ref(false);
+const friendRequests = ref([]);
+const requestsLoading = ref(false);
+const friendEmail = ref("");
+const shareEmail = ref("");
+const selectedShareBookmarkId = ref("");
+const accountActionError = ref("");
+const accountActionSuccess = ref("");
+const SHARED_FOLDER_NAME = "Shared with Me";
 
 // Computed property for filtered bookmarks
 const filteredBookmarks = computed(() => {
@@ -92,6 +103,32 @@ function faviconUrl(link) {
   return d ? `https://www.google.com/s2/favicons?domain=${d}` : "";
 }
 
+function normalizeEmail(email) {
+  return (email || "").trim().toLowerCase();
+}
+
+function sharedBookmarkDocId(recipientUid, sourceBookmarkId) {
+  return `shared_${recipientUid}_${sourceBookmarkId}`;
+}
+
+async function findUserByEmail(email) {
+  const normalized = normalizeEmail(email);
+  if (!normalized) return null;
+
+  const directQuery = query(collection(db, "users"), where("email", "==", normalized));
+  const directSnap = await getDocs(directQuery);
+  if (!directSnap.empty) {
+    return directSnap.docs[0].data();
+  }
+
+  // Backward compatibility: legacy docs may have mixed-case emails.
+  const allUsersSnap = await getDocs(collection(db, "users"));
+  const match = allUsersSnap.docs.find(
+    (d) => normalizeEmail(d.data()?.email) === normalized
+  );
+  return match ? match.data() : null;
+}
+
 // Load bookmarks from Firestore filtered by current user
 const loadBookmarks = async (uid) => {
   if (!uid) return;
@@ -104,6 +141,87 @@ const loadBookmarks = async (uid) => {
     }));
   } catch (error) {
     console.error("Error loading bookmarks:", error);
+  }
+};
+
+const loadFriends = async (uid) => {
+  if (!uid) return;
+  friendsLoading.value = true;
+  try {
+    const snapshot = await getDocs(collection(db, "users", uid, "friends"));
+    friends.value = snapshot.docs.map((friendDoc) => ({
+      id: friendDoc.id,
+      ...friendDoc.data(),
+    }));
+  } catch (error) {
+    console.error("Error loading friends:", error);
+    accountActionError.value = "Failed to load friends.";
+  } finally {
+    friendsLoading.value = false;
+  }
+};
+
+const loadFriendRequests = async (uid) => {
+  if (!uid) return;
+  requestsLoading.value = true;
+  try {
+    const snapshot = await getDocs(
+      collection(db, "users", uid, "friendRequestsIncoming")
+    );
+    friendRequests.value = snapshot.docs.map((requestDoc) => ({
+      id: requestDoc.id,
+      ...requestDoc.data(),
+    }));
+  } catch (error) {
+    console.error("Error loading friend requests:", error);
+    accountActionError.value = "Failed to load friend requests.";
+  } finally {
+    requestsLoading.value = false;
+  }
+};
+
+const upsertSharedBookmarkForRecipient = async ({
+  recipientUid,
+  senderEmail,
+  sourceBookmark,
+}) => {
+  const sharedId = sharedBookmarkDocId(recipientUid, sourceBookmark.id);
+  await setDoc(doc(db, "bookmarks", sharedId), {
+    userId: recipientUid,
+    folderName: SHARED_FOLDER_NAME,
+    name: sourceBookmark.name,
+    link: sourceBookmark.link,
+    shared: true,
+    sharedSourceId: sourceBookmark.id,
+    sharedFrom: normalizeEmail(senderEmail),
+    updatedAt: new Date(),
+  });
+};
+
+const backfillIncomingSharedBookmarks = async (uid) => {
+  if (!uid) return;
+  try {
+    const incomingShares = await getDocs(
+      query(collection(db, "sharedBookmarks"), where("toUid", "==", uid))
+    );
+
+    for (const shareDoc of incomingShares.docs) {
+      const share = shareDoc.data();
+      if (!share?.bookmarkId || !share?.bookmarkLink) continue;
+
+      await upsertSharedBookmarkForRecipient({
+        recipientUid: uid,
+        senderEmail: share.fromEmail || "",
+        sourceBookmark: {
+          id: share.bookmarkId,
+          name: share.bookmarkName || "Shared Bookmark",
+          link: share.bookmarkLink,
+        },
+      });
+    }
+  } catch (error) {
+    // Best-effort backfill: skip silently if rules deny read on sharedBookmarks.
+    console.warn("Shared bookmark backfill skipped:", error?.message || error);
   }
 };
 
@@ -185,13 +303,15 @@ const signup = async () => {
     userId.value = userCredential.user.uid;
     // Create user doc in Firestore
     await setDoc(doc(db, "users", userCredential.user.uid), {
-      email: userCredential.user.email,
+      email: normalizeEmail(userCredential.user.email),
       uid: userCredential.user.uid,
       createdAt: new Date(),
     });
     authEmail.value = "";
     authPassword.value = "";
-    accountDropdown.value = false;
+    accountModalOpen.value = false;
+    await loadFriends(userCredential.user.uid);
+    await loadFriendRequests(userCredential.user.uid);
   } catch (e) {
     authError.value = (e.code ? e.code + ": " : "") + e.message;
   }
@@ -211,7 +331,9 @@ const login = async () => {
     await loadBookmarks(userCredential.user.uid);
     authEmail.value = "";
     authPassword.value = "";
-    accountDropdown.value = false;
+    accountModalOpen.value = false;
+    await loadFriends(userCredential.user.uid);
+    await loadFriendRequests(userCredential.user.uid);
   } catch (e) {
     authError.value = (e.code ? e.code + ": " : "") + e.message;
   }
@@ -228,7 +350,7 @@ const loginWithGoogle = async () => {
     await setDoc(
       doc(db, "users", userCredential.user.uid),
       {
-        email: userCredential.user.email,
+        email: normalizeEmail(userCredential.user.email),
         uid: userCredential.user.uid,
         createdAt: new Date(),
       },
@@ -236,7 +358,9 @@ const loginWithGoogle = async () => {
     );
 
     await loadBookmarks(userCredential.user.uid);
-    accountDropdown.value = false;
+    accountModalOpen.value = false;
+    await loadFriends(userCredential.user.uid);
+    await loadFriendRequests(userCredential.user.uid);
   } catch (e) {
     authError.value = (e.code ? e.code + ": " : "") + e.message;
   }
@@ -248,9 +372,240 @@ const logout = async () => {
     authUser.value = null;
     userId.value = null;
     bookmarks.value = [];
-    accountDropdown.value = false;
+    friends.value = [];
+    friendRequests.value = [];
+    friendEmail.value = "";
+    shareEmail.value = "";
+    selectedShareBookmarkId.value = "";
+    accountModalOpen.value = false;
   } catch (e) {
     console.error("Logout error:", e);
+  }
+};
+
+const openAccountModal = () => {
+  accountActionError.value = "";
+  accountActionSuccess.value = "";
+  themeDropdown.value = false;
+  accountModalOpen.value = true;
+  if (userId.value) {
+    loadFriends(userId.value);
+    loadFriendRequests(userId.value);
+  }
+};
+
+const closeAccountModal = () => {
+  accountModalOpen.value = false;
+  accountActionError.value = "";
+  accountActionSuccess.value = "";
+};
+
+const addFriendByEmail = async () => {
+  accountActionError.value = "";
+  accountActionSuccess.value = "";
+
+  const uid = userId.value;
+  const email = normalizeEmail(friendEmail.value);
+  if (!uid || !email) {
+    accountActionError.value = "Enter a valid friend email.";
+    return;
+  }
+
+  if (email === normalizeEmail(authUser.value?.email)) {
+    accountActionError.value = "You cannot add yourself.";
+    return;
+  }
+
+  try {
+    const friendUser = await findUserByEmail(email);
+    if (!friendUser) {
+      accountActionError.value = "No user found with this email.";
+      return;
+    }
+
+    if (!friendUser?.uid || !friendUser?.email) {
+      accountActionError.value = "Friend account data is incomplete.";
+      return;
+    }
+
+    if (friends.value.some((f) => f.uid === friendUser.uid)) {
+      accountActionError.value = "This user is already your friend.";
+      return;
+    }
+
+    await setDoc(doc(db, "users", uid, "friendRequestsOutgoing", friendUser.uid), {
+      toUid: friendUser.uid,
+      toEmail: normalizeEmail(friendUser.email),
+      fromUid: uid,
+      fromEmail: normalizeEmail(authUser.value?.email),
+      createdAt: new Date(),
+    });
+
+    await setDoc(
+      doc(db, "users", friendUser.uid, "friendRequestsIncoming", uid),
+      {
+        fromUid: uid,
+        fromEmail: normalizeEmail(authUser.value?.email),
+        createdAt: new Date(),
+      }
+    );
+
+    friendEmail.value = "";
+    accountActionSuccess.value = `Friend request sent to ${friendUser.email}.`;
+  } catch (error) {
+    console.error("Error adding friend:", error);
+    accountActionError.value = "Failed to send request. Try again.";
+  }
+};
+
+const removeFriend = async (friendUid) => {
+  accountActionError.value = "";
+  accountActionSuccess.value = "";
+  if (!userId.value || !friendUid) return;
+
+  try {
+    await deleteDoc(doc(db, "users", userId.value, "friends", friendUid));
+    await deleteDoc(doc(db, "users", friendUid, "friends", userId.value));
+
+    friends.value = friends.value.filter(
+      (f) => String(f.uid) !== String(friendUid)
+    );
+    accountActionSuccess.value = "Friend removed.";
+  } catch (error) {
+    console.error("Error removing friend:", error);
+    accountActionError.value = "Failed to remove friend.";
+  }
+};
+
+const approveFriendRequest = async (request) => {
+  accountActionError.value = "";
+  accountActionSuccess.value = "";
+
+  const currentUid = userId.value;
+  const requesterUid = request?.fromUid;
+  const requesterEmail = normalizeEmail(request?.fromEmail);
+  const currentEmail = normalizeEmail(authUser.value?.email);
+
+  if (!currentUid || !requesterUid) {
+    accountActionError.value = "Invalid friend request.";
+    return;
+  }
+
+  try {
+    await setDoc(doc(db, "users", currentUid, "friends", requesterUid), {
+      uid: requesterUid,
+      email: requesterEmail,
+      approvedAt: new Date(),
+    });
+    await setDoc(doc(db, "users", requesterUid, "friends", currentUid), {
+      uid: currentUid,
+      email: currentEmail,
+      approvedAt: new Date(),
+    });
+
+    await deleteDoc(
+      doc(db, "users", currentUid, "friendRequestsIncoming", requesterUid)
+    );
+    await deleteDoc(
+      doc(db, "users", requesterUid, "friendRequestsOutgoing", currentUid)
+    );
+
+    accountActionSuccess.value = `${requesterEmail} is now your friend.`;
+    await loadFriends(currentUid);
+    await loadFriendRequests(currentUid);
+  } catch (error) {
+    console.error("Error approving friend request:", error);
+    accountActionError.value = "Failed to approve request.";
+  }
+};
+
+const deleteFriendRequest = async (request) => {
+  accountActionError.value = "";
+  accountActionSuccess.value = "";
+
+  const currentUid = userId.value;
+  const requesterUid = request?.fromUid;
+  if (!currentUid || !requesterUid) {
+    accountActionError.value = "Invalid friend request.";
+    return;
+  }
+
+  try {
+    await deleteDoc(
+      doc(db, "users", currentUid, "friendRequestsIncoming", requesterUid)
+    );
+    await deleteDoc(
+      doc(db, "users", requesterUid, "friendRequestsOutgoing", currentUid)
+    );
+
+    friendRequests.value = friendRequests.value.filter(
+      (r) => String(r.fromUid) !== String(requesterUid)
+    );
+    accountActionSuccess.value = "Friend request deleted.";
+  } catch (error) {
+    console.error("Error deleting friend request:", error);
+    accountActionError.value = "Failed to delete request.";
+  }
+};
+
+const shareBookmarkByEmail = async () => {
+  accountActionError.value = "";
+  accountActionSuccess.value = "";
+
+  const ownerUid = userId.value;
+  const recipientEmail = normalizeEmail(shareEmail.value);
+  const bookmarkId = selectedShareBookmarkId.value;
+
+  if (!ownerUid) return;
+  if (!bookmarkId) {
+    accountActionError.value = "Select a bookmark to share.";
+    return;
+  }
+  if (!recipientEmail) {
+    accountActionError.value = "Enter recipient email.";
+    return;
+  }
+
+  const bookmark = bookmarks.value.find((b) => String(b.id) === String(bookmarkId));
+  if (!bookmark) {
+    accountActionError.value = "Bookmark not found.";
+    return;
+  }
+
+  if (recipientEmail === normalizeEmail(authUser.value?.email)) {
+    accountActionError.value = "You cannot share with yourself.";
+    return;
+  }
+
+  try {
+    const recipient = await findUserByEmail(recipientEmail);
+    if (!recipient) {
+      accountActionError.value = "Recipient is not registered.";
+      return;
+    }
+
+    await upsertSharedBookmarkForRecipient({
+      recipientUid: recipient.uid,
+      senderEmail: authUser.value?.email || "",
+      sourceBookmark: bookmark,
+    });
+
+    await addDoc(collection(db, "sharedBookmarks"), {
+      fromUid: ownerUid,
+      fromEmail: normalizeEmail(authUser.value?.email),
+      toUid: recipient.uid,
+      toEmail: normalizeEmail(recipient.email),
+      bookmarkId: bookmark.id,
+      bookmarkName: bookmark.name,
+      bookmarkLink: bookmark.link,
+      folderName: bookmark.folderName || "",
+      createdAt: new Date(),
+    });
+
+    accountActionSuccess.value = `Shared "${bookmark.name}" with ${recipient.email}. It will appear in "${SHARED_FOLDER_NAME}".`;
+  } catch (error) {
+    console.error("Error sharing bookmark:", error);
+    accountActionError.value = "Failed to share bookmark.";
   }
 };
 
@@ -346,7 +701,17 @@ onMounted(() => {
     if (user) {
       authUser.value = user;
       userId.value = user.uid;
+      await backfillIncomingSharedBookmarks(user.uid);
       await loadBookmarks(user.uid);
+      await loadFriends(user.uid);
+      await loadFriendRequests(user.uid);
+    } else {
+      authUser.value = null;
+      userId.value = null;
+      bookmarks.value = [];
+      friends.value = [];
+      friendRequests.value = [];
+      accountModalOpen.value = false;
     }
   });
 
@@ -373,7 +738,12 @@ watch(formOpen, async (open) => {
     return;
   }
 
-  const el = formEl.value;
+  const resolveFormElement = () => {
+    const exposed = formEl.value;
+    return exposed?.formEl?.value || exposed?.formEl || exposed || null;
+  };
+
+  let el = resolveFormElement();
   if (!el) {
     formVisible.value = open;
     return;
@@ -382,29 +752,69 @@ watch(formOpen, async (open) => {
   if (open) {
     formVisible.value = true;
     await nextTick();
-    gsap.fromTo(
-      el,
-      { height: 0, opacity: 0.8, overflow: "hidden" },
-      {
-        height: "auto",
-        opacity: 1,
-        duration: 0.44,
-        ease: "power2.out",
-        clearProps: "height,overflow",
-      }
-    );
-  } else {
-    gsap.to(el, {
-      height: "auto",
-      opacity: 0,
-      duration: 0.44,
-      ease: "power2.in",
+    el = resolveFormElement();
+    if (!el) return;
+
+    gsap.killTweensOf(el);
+    gsap.set(el, {
+      transformOrigin: "top center",
+      transformPerspective: 800,
+      backfaceVisibility: "hidden",
+      willChange: "height,opacity,transform",
       overflow: "hidden",
+    });
+    const expandedHeight = el.scrollHeight;
+    const tl = gsap.timeline();
+    tl.fromTo(
+      el,
+      {
+        height: 0,
+        autoAlpha: 0,
+        rotationX: -10,
+        y: -8,
+        scale: 0.985,
+      },
+      {
+        height: expandedHeight,
+        autoAlpha: 1,
+        rotationX: 0,
+        y: 0,
+        scale: 1,
+        duration: 0.62,
+        ease: "expo.out",
+      }
+    ).to(el, {
+      height: "auto",
+      duration: 0.01,
+      clearProps: "height,overflow,willChange,transformPerspective,backfaceVisibility",
+    });
+  } else {
+    gsap.killTweensOf(el);
+    const currentHeight = el.offsetHeight || el.scrollHeight;
+    gsap.set(el, {
+      height: currentHeight,
+      transformOrigin: "top center",
+      transformPerspective: 800,
+      backfaceVisibility: "hidden",
+      willChange: "height,opacity,transform",
+      overflow: "hidden",
+    });
+    gsap.to(el, {
+      height: 0,
+      autoAlpha: 0,
+      rotationX: -10,
+      y: -6,
+      scale: 0.985,
+      duration: 0.5,
+      ease: "expo.inOut",
       onComplete() {
         formVisible.value = false;
-        // ensure props cleared
+        // ensure inline animation styles are cleaned up
         el.style.height = "";
         el.style.overflow = "";
+        el.style.willChange = "";
+        el.style.transformPerspective = "";
+        el.style.backfaceVisibility = "";
       },
     });
   }
@@ -611,12 +1021,35 @@ searchDebounceTimer = setTimeout(async () => {
       :themeDropdown="themeDropdown"
       :themes="themes"
       :selectedTheme="selectedTheme"
-      :accountDropdown="accountDropdown"
       :previewStyle="previewStyle"
       @update:themeDropdown="(val) => (themeDropdown = val)"
-      @update:accountDropdown="(val) => (accountDropdown = val)"
-      @logout="logout"
+      @open-account="openAccountModal"
       @select-theme="selectTheme"
+    />
+
+    <AccountModal
+      :open="accountModalOpen"
+      :authUser="authUser"
+      :bookmarks="bookmarks"
+      :friends="friends"
+      :friendsLoading="friendsLoading"
+      :friendRequests="friendRequests"
+      :requestsLoading="requestsLoading"
+      :friendEmail="friendEmail"
+      :shareEmail="shareEmail"
+      :selectedBookmarkId="selectedShareBookmarkId"
+      :actionError="accountActionError"
+      :actionSuccess="accountActionSuccess"
+      @close="closeAccountModal"
+      @logout="logout"
+      @update:friendEmail="(val) => (friendEmail = val)"
+      @update:shareEmail="(val) => (shareEmail = val)"
+      @update:selectedBookmarkId="(val) => (selectedShareBookmarkId = val)"
+      @add-friend="addFriendByEmail"
+      @remove-friend="removeFriend"
+      @approve-request="approveFriendRequest"
+      @delete-request="deleteFriendRequest"
+      @share-bookmark="shareBookmarkByEmail"
     />
 
     <div class="max-w-6xl mx-auto" v-if="authUser">
