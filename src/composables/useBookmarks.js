@@ -98,58 +98,98 @@ const themes = ref([
     type: "gradient",
     value: "linear-gradient(135deg, #090d16 0%, #0f172a 50%, #1e293b 100%)",
     accent: "#38bdf8",
+    isLight: false,
   },
   {
     name: "Ocean Drift",
     type: "gradient",
     value: "linear-gradient(135deg, #0b1f3a 0%, #126e82 55%, #4fd3c4 100%)",
     accent: "#4fd3c4",
+    isLight: false,
   },
   {
     name: "Cyberpunk Noir",
     type: "gradient",
     value: "linear-gradient(135deg, #180928 0%, #2b0938 50%, #090c1f 100%)",
     accent: "#c084fc",
+    isLight: false,
   },
   {
     name: "Sunset Bloom",
     type: "gradient",
     value: "linear-gradient(135deg, #371b58 0%, #c84b31 55%, #fcbf49 100%)",
     accent: "#fb923c",
+    isLight: false,
   },
   {
     name: "Mint Glow",
     type: "gradient",
     value: "linear-gradient(135deg, #0f2027 0%, #2c5364 45%, #7fffd4 100%)",
     accent: "#34d399",
+    isLight: false,
   },
   {
     name: "Peach Mist",
     type: "gradient",
     value: "linear-gradient(135deg, #3a1c71 0%, #d76d77 48%, #ffaf7b 100%)",
     accent: "#f472b6",
+    isLight: false,
   },
   {
     name: "Lagoon Sky",
     type: "gradient",
     value: "linear-gradient(135deg, #0b132b 0%, #1c2541 35%, #3a86ff 100%)",
     accent: "#60a5fa",
+    isLight: false,
   },
   {
     name: "Aurora Veil",
     type: "gradient",
     value: "linear-gradient(135deg, #1f1147 0%, #006d77 45%, #83c5be 100%)",
     accent: "#2dd4bf",
+    isLight: false,
   },
   {
     name: "Blush Cream",
     type: "gradient",
     value: "linear-gradient(135deg, #fdf0d5 0%, #f7cad0 40%, #cdb4db 100%)",
     accent: "#e879f9",
+    isLight: true,
   },
-  { name: "Default Image", type: "image", value: "/images/background.png" },
-  { name: "Noir Gradient Image", type: "image", value: "/images/black-gd.jpg" },
+  {
+    name: "Pure Clean Light",
+    type: "gradient",
+    value: "linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #cbd5e1 100%)",
+    accent: "#0284c7",
+    isLight: true,
+  },
+  { name: "Default Image", type: "image", value: "/images/background.png", isLight: false },
+  { name: "Noir Gradient Image", type: "image", value: "/images/black-gd.jpg", isLight: false },
 ]);
+
+export function applyThemeToDocument(theme) {
+  if (!theme || typeof document === "undefined") return;
+  const isLight = Boolean(theme.isLight);
+  const root = document.documentElement;
+
+  if (isLight) {
+    root.classList.add("theme-light");
+    root.classList.remove("theme-dark");
+    root.style.colorScheme = "light";
+    root.style.setProperty("--scrollbar-track", "transparent");
+    root.style.setProperty("--scrollbar-thumb", "rgba(0, 0, 0, 0.22)");
+    root.style.setProperty("--scrollbar-thumb-hover", theme.accent || "rgba(0, 0, 0, 0.45)");
+    root.style.setProperty("--theme-accent", theme.accent || "#0284c7");
+  } else {
+    root.classList.add("theme-dark");
+    root.classList.remove("theme-light");
+    root.style.colorScheme = "dark";
+    root.style.setProperty("--scrollbar-track", "transparent");
+    root.style.setProperty("--scrollbar-thumb", "rgba(255, 255, 255, 0.22)");
+    root.style.setProperty("--scrollbar-thumb-hover", theme.accent || "rgba(255, 255, 255, 0.45)");
+    root.style.setProperty("--theme-accent", theme.accent || "#38bdf8");
+  }
+}
 
 let _initialTheme = themes.value[0];
 try {
@@ -161,6 +201,7 @@ try {
 } catch (e) {}
 
 const selectedTheme = ref(_initialTheme);
+applyThemeToDocument(_initialTheme);
 
 export function useBookmarks() {
   const filteredBookmarks = computed(() => {
@@ -235,6 +276,7 @@ export function useBookmarks() {
 
   function selectTheme(theme) {
     selectedTheme.value = theme;
+    applyThemeToDocument(theme);
     try {
       localStorage.setItem("selectedTheme", theme.name);
     } catch (e) {}
