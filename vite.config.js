@@ -43,5 +43,17 @@ export default defineConfig({
       },
     }),
   ],
+  build: {
+    target: "esnext",
+    cssCodeSplit: true,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          firebase: ["firebase/app", "firebase/auth", "firebase/firestore"],
+          vendor: ["vue", "gsap", "@heroicons/vue"],
+        },
+      },
+    },
+  },
   base: "/",
 });

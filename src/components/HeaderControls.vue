@@ -25,7 +25,7 @@ function isSelectedTheme(theme) {
 <template>
   <div>
     <div
-      class="absolute top-6 mr-3"
+      class="absolute top-6 mr-3 transition-all duration-200"
       :class="authUser ? 'right-16' : 'right-6'"
     >
       <div class="relative">
