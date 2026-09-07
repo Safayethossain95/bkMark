@@ -642,9 +642,23 @@ onUnmounted(() => {
             </div>
           </div>
 
-          <!-- Empty State -->
+          <!-- Bookmarks Loading Spinner State -->
           <div
-            v-if="displayedBookmarks.length === 0"
+            v-if="bookmarksLoading"
+            class="flex flex-col items-center justify-center py-24 rounded-3xl border border-white/10 bg-slate-900/40 backdrop-blur-xl shadow-xl"
+          >
+            <div class="relative flex items-center justify-center">
+              <div class="absolute h-16 w-16 rounded-full bg-cyan-400/20 blur-xl animate-pulse"></div>
+              <div class="h-10 w-10 animate-spin rounded-full border-2 border-cyan-400/20 border-t-cyan-400"></div>
+            </div>
+            <p class="mt-4 text-xs font-medium text-cyan-200/80 animate-pulse tracking-wide">
+              Loading your bookmarks...
+            </p>
+          </div>
+
+          <!-- Empty State (Only when API finished loading and list is empty) -->
+          <div
+            v-else-if="displayedBookmarks.length === 0"
             class="rounded-3xl border border-white/10 bg-slate-900/60 p-12 text-center backdrop-blur-xl shadow-2xl"
           >
             <div class="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-cyan-300/30 bg-cyan-500/10 text-cyan-300">
