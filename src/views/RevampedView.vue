@@ -210,20 +210,79 @@ async function handleModalSubmit() {
   isAddModalOpen.value = false;
 }
 
+function openFirstBookmark() {
+  if (displayedBookmarks.value && displayedBookmarks.value.length > 0) {
+    const firstItem = displayedBookmarks.value[0];
+    if (firstItem && firstItem.link) {
+      let url = String(firstItem.link).trim();
+      if (!/^https?:\/\//i.test(url)) url = `https://${url}`;
+      try {
+        const win = window.open(url, "_blank", "noopener,noreferrer");
+        if (!win || win.closed || typeof win.closed === "undefined") {
+          const a = document.createElement("a");
+          a.href = url;
+          a.target = "_blank";
+          a.rel = "noopener noreferrer";
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+        }
+      } catch (err) {
+        const a = document.createElement("a");
+        a.href = url;
+        a.target = "_blank";
+        a.rel = "noopener noreferrer";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      }
+    }
+  }
+}
+
 function handleKeydown(e) {
   if ((e.ctrlKey || e.metaKey) && e.key === "k") {
     e.preventDefault();
     searchInputRef.value?.focus();
+    return;
   }
-  if ((e.ctrlKey || e.metaKey) && e.key === "n" && authUser.value) {
-    e.preventDefault();
-    openAddModal();
-  }
-  if (e.key === "Escape") {
-    if (isAddModalOpen.value) isAddModalOpen.value = false;
+  const isEnter = e.key === "Enter" || e.code === "Enter" || e.code === "NumpadEnter" || e.keyCode === 13;
+  if (isEnter) {
+    if (accountModalOpen.value || formOpen.value) return;
+    const target = e.target;
+    if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.tagName === "SELECT" || target.isContentEditable)) {
+      return;
+    }
+    if (filteredBookmarks.value && filteredBookmarks.value.length > 0) {
+      const firstItem = filteredBookmarks.value[0];
+      if (firstItem && firstItem.link) {
+        e.preventDefault();
+        let url = String(firstItem.link).trim();
+        if (!/^https?:\/\//i.test(url)) url = `https://${url}`;
+        try {
+          const win = window.open(url, "_blank", "noopener,noreferrer");
+          if (!win || win.closed || typeof win.closed === "undefined") {
+            const a = document.createElement("a");
+            a.href = url;
+            a.target = "_blank";
+            a.rel = "noopener noreferrer";
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+          }
+        } catch (err) {
+          const a = document.createElement("a");
+          a.href = url;
+          a.target = "_blank";
+          a.rel = "noopener noreferrer";
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+        }
+      }
+    }
   }
 }
-
 onMounted(() => {
   initAuth();
   window.addEventListener("keydown", handleKeydown);
@@ -352,7 +411,9 @@ onUnmounted(() => {
             </svg>
             <input
               ref="searchInputRef"
+              data-search-bar="true"
               v-model="searchQuery"
+              @keydown.enter.prevent.stop="openFirstBookmark"
               type="text"
               placeholder="Search links, tags, domains... (Ctrl + K)"
               class="w-full rounded-2xl border border-white/15 bg-slate-900/70 py-2 pl-10 pr-20 text-xs sm:text-sm text-white placeholder-cyan-100/40 shadow-inner transition focus:border-cyan-400/50 focus:bg-slate-900/95 focus:outline-none focus:ring-2 focus:ring-cyan-400/40"

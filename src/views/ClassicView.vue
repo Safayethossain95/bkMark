@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, watch } from "vue";
+import { onMounted, onUnmounted, watch } from "vue";
 import AccountModal from "../components/AccountModal.vue";
 import BookmarkForm from "../components/BookmarkForm.vue";
 import BookmarkList from "../components/BookmarkList.vue";
@@ -68,16 +68,57 @@ const {
   faviconUrl,
 } = useBookmarks();
 
+function handleKeydown(e) {
+  if ((e.ctrlKey || e.metaKey) && e.key === "k") {
+    e.preventDefault();
+    searchInput.value?.focus();
+    return;
+  }
+  const isEnter = e.key === "Enter" || e.code === "Enter" || e.code === "NumpadEnter" || e.keyCode === 13;
+  if (isEnter) {
+    if (accountModalOpen.value || formOpen.value) return;
+    const target = e.target;
+    if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.tagName === "SELECT" || target.isContentEditable)) {
+      return;
+    }
+    if (filteredBookmarks.value && filteredBookmarks.value.length > 0) {
+      const firstItem = filteredBookmarks.value[0];
+      if (firstItem && firstItem.link) {
+        e.preventDefault();
+        let url = String(firstItem.link).trim();
+        if (!/^https?:\/\//i.test(url)) url = `https://${url}`;
+        try {
+          const win = window.open(url, "_blank", "noopener,noreferrer");
+          if (!win || win.closed || typeof win.closed === "undefined") {
+            const a = document.createElement("a");
+            a.href = url;
+            a.target = "_blank";
+            a.rel = "noopener noreferrer";
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+          }
+        } catch (err) {
+          const a = document.createElement("a");
+          a.href = url;
+          a.target = "_blank";
+          a.rel = "noopener noreferrer";
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+        }
+      }
+    }
+  }
+}
+
 onMounted(() => {
   initAuth();
+  window.addEventListener("keydown", handleKeydown);
+});
 
-  // Keyboard shortcut Ctrl+K
-  window.addEventListener("keydown", (e) => {
-    if ((e.ctrlKey || e.metaKey) && e.key === "k") {
-      e.preventDefault();
-      searchInput.value?.focus();
-    }
-  });
+onUnmounted(() => {
+  window.removeEventListener("keydown", handleKeydown);
 });
 </script>
 

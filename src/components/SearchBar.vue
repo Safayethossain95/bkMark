@@ -37,11 +37,31 @@ function onEnter() {
   if (props.filteredBookmarks && props.filteredBookmarks.length > 0) {
     const firstItem = props.filteredBookmarks[0];
     if (firstItem && firstItem.link) {
-      // Open in new tab
-      window.open(firstItem.link, "_blank");
-      
-      // Optional: Clear search after opening
-      // emit("update:searchQuery", "");
+      let url = String(firstItem.link).trim();
+      if (!url) return;
+      if (!/^https?:\/\//i.test(url)) {
+        url = `https://${url}`;
+      }
+      try {
+        const win = window.open(url, "_blank", "noopener,noreferrer");
+        if (!win || win.closed || typeof win.closed === "undefined") {
+          const a = document.createElement("a");
+          a.href = url;
+          a.target = "_blank";
+          a.rel = "noopener noreferrer";
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+        }
+      } catch (err) {
+        const a = document.createElement("a");
+        a.href = url;
+        a.target = "_blank";
+        a.rel = "noopener noreferrer";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      }
     }
   }
 }
