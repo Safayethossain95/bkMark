@@ -31,6 +31,7 @@ const {
   previewStyle,
   selectTheme,
   addBookmark,
+  updateBookmark,
   editBookmark,
   deleteBookmark,
   signup,
@@ -191,15 +192,7 @@ async function handleModalSubmit() {
 
   if (editingBookmarkData.value) {
     // update
-    await addBookmark({
-      ...payload,
-      id: editingBookmarkData.value.id,
-    });
-    // update local
-    const idx = bookmarks.value.findIndex((b) => b.id === editingBookmarkData.value.id);
-    if (idx !== -1) {
-      bookmarks.value[idx] = { ...bookmarks.value[idx], ...payload };
-    }
+    await updateBookmark(editingBookmarkData.value.id, payload);
     showToast(`Updated "${payload.name}"`);
   } else {
     // create
@@ -380,17 +373,12 @@ onUnmounted(() => {
               class="lg:hidden inline-flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-cyan-100 hover:bg-white/10"
               aria-label="Toggle sidebar"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                <path fill-rule="evenodd" d="M3 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 15a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd" />
-              </svg>
+            
             </button>
             <div class="flex items-center gap-2.5 cursor-pointer" @click="selectFilter('ALL')">
-              <div class="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-400 to-blue-600 shadow-md shadow-cyan-500/20">
-                <img src="/images/favicon.png" class="h-5 w-5" alt="logo" />
-              </div>
+              <img src="/images/logo.png" class="h-[20px]"/>
               <div class="hidden sm:block">
                 <div class="flex items-center gap-1.5">
-                  <span class="font-bold text-base text-white tracking-tight">bkMark</span>
                   <span class="rounded-md bg-gradient-to-r from-cyan-500/20 to-blue-500/20 border border-cyan-400/30 px-1.5 py-0.2 text-[10px] font-bold uppercase tracking-wider text-cyan-200">
                     PRO
                   </span>

@@ -31,7 +31,7 @@ const urlName = ref("");
 const link = ref("");
 const editingId = ref(null);
 const formOpen = ref(false);
-const formVisible = ref(false);
+const formVisible = computed(() => formOpen.value);
 const formEl = ref(null);
 const searchInput = ref(null);
 
@@ -191,14 +191,14 @@ export function applyThemeToDocument(theme) {
   }
 }
 
-let _initialTheme = themes.value[0];
+let _initialTheme = themes.value[1];
 try {
   const stored = localStorage.getItem("selectedTheme");
   if (stored) {
     const found = themes.value.find((t) => t.name === stored);
     if (found) _initialTheme = found;
   }
-} catch (e) {}
+} catch (e) { }
 
 const selectedTheme = ref(_initialTheme);
 applyThemeToDocument(_initialTheme);
@@ -279,7 +279,7 @@ export function useBookmarks() {
     applyThemeToDocument(theme);
     try {
       localStorage.setItem("selectedTheme", theme.name);
-    } catch (e) {}
+    } catch (e) { }
     themeDropdown.value = false;
   }
 
@@ -410,7 +410,55 @@ export function useBookmarks() {
     }
   };
 
+  const updateBookmark = async (id, payload) => {
+    const targetId = id || editingId.value;
+    if (!targetId) return;
+
+    const fVal = payload?.folderName ?? folderName.value ?? "General";
+    const uVal = payload?.name ?? urlName.value;
+    const lVal = payload?.link ?? link.value;
+
+    if (!uVal || !lVal) {
+      alert("Please enter a bookmark title and URL");
+      return;
+    }
+
+    try {
+      const docRef = doc(db, "bookmarks", targetId);
+      await updateDoc(docRef, {
+        userId: userId.value,
+        folderName: fVal || "General",
+        name: uVal,
+        link: lVal,
+        updatedAt: new Date(),
+      });
+
+      const index = bookmarks.value.findIndex((b) => String(b.id) === String(targetId));
+      if (index !== -1) {
+        bookmarks.value[index] = {
+          ...bookmarks.value[index],
+          id: targetId,
+          folderName: fVal || "General",
+          name: uVal,
+          link: lVal,
+        };
+      }
+      editingId.value = null;
+      clearForm();
+      formOpen.value = false;
+    } catch (error) {
+      console.error("Error updating bookmark:", error);
+      alert("Error updating bookmark. Please try again.");
+      throw error;
+    }
+  };
+
   const addBookmark = async (customPayload) => {
+    const targetId = customPayload?.id || editingId.value;
+    if (targetId) {
+      return await updateBookmark(targetId, customPayload);
+    }
+
     const fVal = customPayload?.folderName || folderName.value || "General";
     const uVal = customPayload?.name || urlName.value;
     const lVal = customPayload?.link || link.value;
@@ -421,47 +469,28 @@ export function useBookmarks() {
     }
 
     try {
-      if (editingId.value !== null && !customPayload) {
-        const docRef = doc(db, "bookmarks", editingId.value);
-        await updateDoc(docRef, {
-          userId: userId.value,
-          folderName: fVal,
-          name: uVal,
-          link: lVal,
-        });
+      const docRef = await addDoc(collection(db, "bookmarks"), {
+        userId: userId.value,
+        folderName: fVal,
+        name: uVal,
+        link: lVal,
+        createdAt: new Date(),
+      });
 
-        const index = bookmarks.value.findIndex((b) => b.id === editingId.value);
-        if (index !== -1) {
-          bookmarks.value[index] = {
-            id: editingId.value,
-            folderName: fVal,
-            name: uVal,
-            link: lVal,
-          };
-        }
-        editingId.value = null;
-      } else {
-        const docRef = await addDoc(collection(db, "bookmarks"), {
-          userId: userId.value,
-          folderName: fVal,
-          name: uVal,
-          link: lVal,
-          createdAt: new Date(),
-        });
-
-        bookmarks.value.push({
-          id: docRef.id,
-          folderName: fVal,
-          name: uVal,
-          link: lVal,
-        });
-      }
+      bookmarks.value.push({
+        id: docRef.id,
+        folderName: fVal,
+        name: uVal,
+        link: lVal,
+        createdAt: new Date(),
+      });
 
       clearForm();
       formOpen.value = false;
     } catch (error) {
       console.error("Error saving bookmark:", error);
       alert("Error saving bookmark. Please try again.");
+      throw error;
     }
   };
 
@@ -923,6 +952,7 @@ export function useBookmarks() {
     loadFriends,
     loadFriendRequests,
     addBookmark,
+    updateBookmark,
     editBookmark,
     deleteBookmark,
     clearForm,

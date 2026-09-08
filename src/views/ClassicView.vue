@@ -46,6 +46,7 @@ const {
   previewStyle,
   selectTheme,
   addBookmark,
+  updateBookmark,
   editBookmark,
   deleteBookmark,
   clearForm,
