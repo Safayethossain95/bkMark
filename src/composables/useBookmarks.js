@@ -175,6 +175,7 @@ export function applyThemeToDocument(theme) {
   if (isLight) {
     root.classList.add("theme-light");
     root.classList.remove("theme-dark");
+    root.classList.remove("dark");
     root.style.colorScheme = "light";
     root.style.setProperty("--scrollbar-track", "transparent");
     root.style.setProperty("--scrollbar-thumb", "rgba(0, 0, 0, 0.22)");
@@ -182,6 +183,7 @@ export function applyThemeToDocument(theme) {
     root.style.setProperty("--theme-accent", theme.accent || "#0284c7");
   } else {
     root.classList.add("theme-dark");
+    root.classList.add("dark");
     root.classList.remove("theme-light");
     root.style.colorScheme = "dark";
     root.style.setProperty("--scrollbar-track", "transparent");
@@ -425,18 +427,24 @@ export function useBookmarks() {
 
     try {
       const docRef = doc(db, "bookmarks", targetId);
-      await updateDoc(docRef, {
+      const updateData = {
         userId: userId.value,
         folderName: fVal || "General",
         name: uVal,
         link: lVal,
         updatedAt: new Date(),
-      });
+      };
+      if (payload?.notes !== undefined) updateData.notes = payload.notes;
+      if (payload?.color !== undefined) updateData.color = payload.color;
+      if (payload?.pinned !== undefined) updateData.pinned = payload.pinned;
+
+      await updateDoc(docRef, updateData);
 
       const index = bookmarks.value.findIndex((b) => String(b.id) === String(targetId));
       if (index !== -1) {
         bookmarks.value[index] = {
           ...bookmarks.value[index],
+          ...payload,
           id: targetId,
           folderName: fVal || "General",
           name: uVal,
@@ -469,20 +477,22 @@ export function useBookmarks() {
     }
 
     try {
-      const docRef = await addDoc(collection(db, "bookmarks"), {
+      const newDocData = {
         userId: userId.value,
         folderName: fVal,
         name: uVal,
         link: lVal,
         createdAt: new Date(),
-      });
+      };
+      if (customPayload?.notes !== undefined) newDocData.notes = customPayload.notes;
+      if (customPayload?.color !== undefined) newDocData.color = customPayload.color;
+      if (customPayload?.pinned !== undefined) newDocData.pinned = customPayload.pinned;
+
+      const docRef = await addDoc(collection(db, "bookmarks"), newDocData);
 
       bookmarks.value.push({
         id: docRef.id,
-        folderName: fVal,
-        name: uVal,
-        link: lVal,
-        createdAt: new Date(),
+        ...newDocData,
       });
 
       clearForm();

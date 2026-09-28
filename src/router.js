@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from "vue-router";
 import RevampedView from "./views/RevampedView.vue";
 import ClassicView from "./views/ClassicView.vue";
+import GoogleView from "./views/GoogleView.vue";
 
 const routes = [
   {
@@ -12,6 +13,11 @@ const routes = [
     path: "/version2",
     name: "Classic",
     component: ClassicView,
+  },
+  {
+    path: "/google",
+    name: "Google",
+    component: GoogleView,
   },
   {
     path: "/:pathMatch(.*)*",

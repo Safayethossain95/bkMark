@@ -53,6 +53,7 @@ const {
 } = useBookmarks();
 
 // Local UI state for Pro Experience
+const isLightMode = computed(() => Boolean(selectedTheme.value?.isLight));
 const viewMode = ref("grid"); // 'grid' | 'list'
 const selectedFolderFilter = ref("ALL"); // 'ALL' | 'SHARED' | 'RECENT' | specific folder
 const sortBy = ref("newest"); // 'newest' | 'name' | 'folder'
@@ -362,7 +363,8 @@ onUnmounted(() => {
     <div v-else-if="authUser" class="flex flex-col min-h-screen">
       <!-- Top Navigation Command Bar -->
       <header
-        class="sticky top-0 z-40 border-b border-white/10 bg-slate-950/60 backdrop-blur-2xl px-4 sm:px-6 py-3.5 transition-all"
+        :class="isLightMode ? 'border-slate-300/80 bg-white/80 text-slate-900 shadow-sm' : 'border-white/10 bg-slate-950/60 text-white'"
+        class="sticky top-0 z-40 border-b backdrop-blur-2xl px-4 sm:px-6 py-3.5 transition-all"
       >
         <div class="max-w-7xl mx-auto flex items-center justify-between gap-3 sm:gap-6">
           <!-- Logo & Brand -->
@@ -370,7 +372,8 @@ onUnmounted(() => {
             <button
               @click="isSidebarOpen = !isSidebarOpen"
               type="button"
-              class="lg:hidden inline-flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-cyan-100 hover:bg-white/10"
+              :class="isLightMode ? 'border-slate-300 bg-white text-slate-700 hover:bg-slate-100' : 'border-white/10 bg-white/5 text-cyan-100 hover:bg-white/10'"
+              class="lg:hidden inline-flex h-9 w-9 items-center justify-center rounded-xl border"
               aria-label="Toggle sidebar"
             >
             
@@ -391,7 +394,8 @@ onUnmounted(() => {
           <div class="relative flex-1 max-w-lg">
             <svg
               xmlns="http://www.w3.org/2000/svg"
-              class="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-cyan-100/50"
+              :class="isLightMode ? 'text-slate-400' : 'text-cyan-100/50'"
+              class="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2"
               viewBox="0 0 20 20"
               fill="currentColor"
             >
@@ -404,9 +408,15 @@ onUnmounted(() => {
               @keydown.enter.prevent.stop="openFirstBookmark"
               type="text"
               placeholder="Search links, tags, domains... (Ctrl + K)"
-              class="w-full rounded-2xl border border-white/15 bg-slate-900/70 py-2 pl-10 pr-20 text-xs sm:text-sm text-white placeholder-cyan-100/40 shadow-inner transition focus:border-cyan-400/50 focus:bg-slate-900/95 focus:outline-none focus:ring-2 focus:ring-cyan-400/40"
+              :class="isLightMode
+                ? 'border-slate-300 bg-white/95 text-slate-900 placeholder-slate-400 shadow-sm focus:border-cyan-500 focus:bg-white focus:ring-cyan-500/30'
+                : 'border-white/15 bg-slate-900/70 text-white placeholder-cyan-100/40 shadow-inner focus:border-cyan-400/50 focus:bg-slate-900/95 focus:ring-cyan-400/40'"
+              class="w-full rounded-2xl border py-2 pl-10 pr-20 text-xs sm:text-sm transition focus:outline-none focus:ring-2"
             />
-            <div class="absolute right-2.5 top-1/2 -translate-y-1/2 hidden sm:flex items-center gap-1 text-[11px] font-mono text-cyan-100/45 pointer-events-none bg-white/5 border border-white/10 rounded-md px-1.5 py-0.5">
+            <div
+              :class="isLightMode ? 'text-slate-500 bg-slate-100 border-slate-200' : 'text-cyan-100/45 bg-white/5 border-white/10'"
+              class="absolute right-2.5 top-1/2 -translate-y-1/2 hidden sm:flex items-center gap-1 text-[11px] font-mono pointer-events-none border rounded-md px-1.5 py-0.5"
+            >
               <span>⌘K</span>
             </div>
           </div>
@@ -430,17 +440,19 @@ onUnmounted(() => {
               <button
                 @click="themeDropdown = !themeDropdown"
                 type="button"
-                class="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-slate-900/70 text-cyan-100 transition hover:bg-slate-800/80"
+                :class="isLightMode ? 'border-slate-300 bg-white text-slate-700 hover:bg-slate-100' : 'border-white/10 bg-slate-900/70 text-cyan-100 hover:bg-slate-800/80'"
+                class="inline-flex h-9 w-9 items-center justify-center rounded-xl border transition"
                 title="Change theme"
               >
-                <div :style="previewStyle(selectedTheme)" class="h-5 w-5 rounded-full border border-white/30"></div>
+                <div :style="previewStyle(selectedTheme)" class="h-5 w-5 rounded-full border border-black/20 dark:border-white/30"></div>
               </button>
 
               <div
                 v-show="themeDropdown"
-                class="absolute right-0 z-50 mt-2 w-64 rounded-2xl border border-cyan-100/20 bg-slate-900/90 p-2.5 text-cyan-50 shadow-2xl shadow-slate-950/80 backdrop-blur-2xl"
+                :class="isLightMode ? 'border-slate-200 bg-white/95 text-slate-900 shadow-xl shadow-slate-300/50' : 'border-cyan-100/20 bg-slate-900/90 text-cyan-50 shadow-2xl shadow-slate-950/80'"
+                class="absolute right-0 z-50 mt-2 w-64 rounded-2xl border p-2.5 backdrop-blur-2xl"
               >
-                <p class="px-2 py-1 text-[11px] font-semibold uppercase tracking-wider text-cyan-200/60">
+                <p :class="isLightMode ? 'text-slate-500' : 'text-cyan-200/60'" class="px-2 py-1 text-[11px] font-semibold uppercase tracking-wider">
                   Theme Palette
                 </p>
                 <div class="mt-1 space-y-1 max-h-60 overflow-y-auto">
@@ -449,10 +461,10 @@ onUnmounted(() => {
                     :key="theme.name"
                     @click="selectTheme(theme)"
                     class="flex items-center gap-2.5 rounded-xl p-2 cursor-pointer transition"
-                    :class="selectedTheme?.name === theme.name ? 'bg-cyan-500/20 border border-cyan-300/30' : 'hover:bg-white/5 border border-transparent'"
+                    :class="selectedTheme?.name === theme.name ? (isLightMode ? 'bg-cyan-100 border border-cyan-400' : 'bg-cyan-500/20 border border-cyan-300/30') : (isLightMode ? 'hover:bg-slate-100 border border-transparent' : 'hover:bg-white/5 border border-transparent')"
                   >
-                    <div :style="previewStyle(theme)" class="h-6 w-6 rounded-lg border border-white/20"></div>
-                    <span class="text-xs font-medium text-white truncate">{{ theme.name }}</span>
+                    <div :style="previewStyle(theme)" class="h-6 w-6 rounded-lg border border-black/15 dark:border-white/20"></div>
+                    <span :class="isLightMode ? 'text-slate-900' : 'text-white'" class="text-xs font-medium truncate">{{ theme.name }}</span>
                   </div>
                 </div>
               </div>
@@ -521,49 +533,55 @@ onUnmounted(() => {
           </div>
 
           <!-- Quick Filters Card -->
-          <div class="rounded-3xl border border-white/10 bg-slate-900/60 p-3.5 backdrop-blur-xl shadow-xl shadow-slate-950/20 space-y-1">
-            <p class="px-3 pt-1 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-cyan-200/60">
+          <div :class="isLightMode ? 'rounded-3xl border border-slate-300/80 bg-white/85 p-3.5 backdrop-blur-xl shadow-lg shadow-slate-200/50 space-y-1' : 'rounded-3xl border border-white/10 bg-slate-900/60 p-3.5 backdrop-blur-xl shadow-xl shadow-slate-950/20 space-y-1'">
+            <p :class="isLightMode ? 'text-slate-500' : 'text-cyan-200/60'" class="px-3 pt-1 pb-1.5 text-[11px] font-semibold uppercase tracking-wider">
               Navigation
             </p>
 
             <button
               @click="selectFilter('ALL')"
               type="button"
-              :class="selectedFolderFilter === 'ALL' ? 'bg-cyan-500/20 text-white font-semibold border-cyan-300/30' : 'text-cyan-100/70 hover:bg-white/5 hover:text-white border-transparent'"
+              :class="selectedFolderFilter === 'ALL'
+                ? (isLightMode ? 'bg-cyan-500/20 text-cyan-950 font-bold border-cyan-400/50' : 'bg-cyan-500/20 text-white font-semibold border-cyan-300/30')
+                : (isLightMode ? 'text-slate-700 hover:bg-slate-100 hover:text-slate-950 border-transparent' : 'text-cyan-100/70 hover:bg-white/5 hover:text-white border-transparent')"
               class="w-full flex items-center justify-between gap-2.5 rounded-2xl px-3 py-2 text-xs transition border"
             >
               <div class="flex items-center gap-2.5">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-cyan-300" viewBox="0 0 20 20" fill="currentColor">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-cyan-500" viewBox="0 0 20 20" fill="currentColor">
                   <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
                 </svg>
                 <span>All Bookmarks</span>
               </div>
-              <span class="rounded-full bg-white/10 px-2 py-0.5 text-[10px]">{{ totalCount }}</span>
+              <span :class="isLightMode ? 'bg-slate-200 text-slate-800' : 'bg-white/10 text-white'" class="rounded-full px-2 py-0.5 text-[10px] font-semibold">{{ totalCount }}</span>
             </button>
 
             <button
               @click="selectFilter('SHARED')"
               type="button"
-              :class="selectedFolderFilter === 'SHARED' ? 'bg-cyan-500/20 text-white font-semibold border-cyan-300/30' : 'text-cyan-100/70 hover:bg-white/5 hover:text-white border-transparent'"
+              :class="selectedFolderFilter === 'SHARED'
+                ? (isLightMode ? 'bg-cyan-500/20 text-cyan-950 font-bold border-cyan-400/50' : 'bg-cyan-500/20 text-white font-semibold border-cyan-300/30')
+                : (isLightMode ? 'text-slate-700 hover:bg-slate-100 hover:text-slate-950 border-transparent' : 'text-cyan-100/70 hover:bg-white/5 hover:text-white border-transparent')"
               class="w-full flex items-center justify-between gap-2.5 rounded-2xl px-3 py-2 text-xs transition border"
             >
               <div class="flex items-center gap-2.5">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-cyan-300" viewBox="0 0 20 20" fill="currentColor">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-cyan-500" viewBox="0 0 20 20" fill="currentColor">
                   <path d="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.319l4.94 2.47a3 3 0 10.895-1.789l-4.94-2.47a3.027 3.027 0 000-.74l4.94-2.47C13.456 7.68 14.19 8 15 8z" />
                 </svg>
                 <span>Shared with Me</span>
               </div>
-              <span class="rounded-full bg-cyan-400/20 px-2 py-0.5 text-[10px] text-cyan-200">{{ sharedCount }}</span>
+              <span class="rounded-full bg-cyan-400/20 px-2 py-0.5 text-[10px] font-bold text-cyan-700 dark:text-cyan-200">{{ sharedCount }}</span>
             </button>
 
             <button
               @click="selectFilter('RECENT')"
               type="button"
-              :class="selectedFolderFilter === 'RECENT' ? 'bg-cyan-500/20 text-white font-semibold border-cyan-300/30' : 'text-cyan-100/70 hover:bg-white/5 hover:text-white border-transparent'"
+              :class="selectedFolderFilter === 'RECENT'
+                ? (isLightMode ? 'bg-cyan-500/20 text-cyan-950 font-bold border-cyan-400/50' : 'bg-cyan-500/20 text-white font-semibold border-cyan-300/30')
+                : (isLightMode ? 'text-slate-700 hover:bg-slate-100 hover:text-slate-950 border-transparent' : 'text-cyan-100/70 hover:bg-white/5 hover:text-white border-transparent')"
               class="w-full flex items-center justify-between gap-2.5 rounded-2xl px-3 py-2 text-xs transition border"
             >
               <div class="flex items-center gap-2.5">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-cyan-300" viewBox="0 0 20 20" fill="currentColor">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-cyan-500" viewBox="0 0 20 20" fill="currentColor">
                   <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd" />
                 </svg>
                 <span>Recently Added</span>
@@ -572,15 +590,16 @@ onUnmounted(() => {
           </div>
 
           <!-- Folders & Collections Card -->
-          <div class="rounded-3xl border border-white/10 bg-slate-900/60 p-3.5 backdrop-blur-xl shadow-xl shadow-slate-950/20 space-y-1">
+          <div :class="isLightMode ? 'rounded-3xl border border-slate-300/80 bg-white/85 p-3.5 backdrop-blur-xl shadow-lg shadow-slate-200/50 space-y-1' : 'rounded-3xl border border-white/10 bg-slate-900/60 p-3.5 backdrop-blur-xl shadow-xl shadow-slate-950/20 space-y-1'">
             <div class="flex items-center justify-between px-3 pt-1 pb-1.5">
-              <p class="text-[11px] font-semibold uppercase tracking-wider text-cyan-200/60">
+              <p :class="isLightMode ? 'text-slate-500' : 'text-cyan-200/60'" class="text-[11px] font-semibold uppercase tracking-wider">
                 Folders
               </p>
               <button
                 @click="openAddModal()"
                 type="button"
-                class="text-xs text-cyan-300 hover:text-white font-semibold flex items-center gap-1"
+                :class="isLightMode ? 'text-cyan-700 hover:text-cyan-900' : 'text-cyan-300 hover:text-white'"
+                class="text-xs font-semibold flex items-center gap-1"
                 title="Add to new folder"
               >
                 <span>+</span>
@@ -593,40 +612,44 @@ onUnmounted(() => {
                 :key="folder"
                 @click="selectFilter(folder)"
                 type="button"
-                :class="selectedFolderFilter === folder ? 'bg-cyan-500/20 text-white font-semibold border-cyan-300/30' : 'text-cyan-100/70 hover:bg-white/5 hover:text-white border-transparent'"
+                :class="selectedFolderFilter === folder
+                  ? (isLightMode ? 'bg-cyan-500/20 text-cyan-950 font-bold border-cyan-400/50' : 'bg-cyan-500/20 text-white font-semibold border-cyan-300/30')
+                  : (isLightMode ? 'text-slate-700 hover:bg-slate-100 hover:text-slate-950 border-transparent' : 'text-cyan-100/70 hover:bg-white/5 hover:text-white border-transparent')"
                 class="w-full flex items-center justify-between gap-2.5 rounded-2xl px-3 py-2 text-xs transition border"
               >
                 <div class="flex items-center gap-2 truncate">
-                  <span class="h-2 w-2 rounded-full bg-cyan-400"></span>
+                  <span class="h-2 w-2 rounded-full bg-cyan-500"></span>
                   <span class="truncate">{{ folder }}</span>
                 </div>
-                <span class="rounded-full bg-white/10 px-2 py-0.5 text-[10px]">{{ getFolderCount(folder) }}</span>
+                <span :class="isLightMode ? 'bg-slate-200 text-slate-800' : 'bg-white/10 text-white'" class="rounded-full px-2 py-0.5 text-[10px] font-semibold">{{ getFolderCount(folder) }}</span>
               </button>
             </div>
           </div>
 
           <!-- Friends Widget -->
-          <div class="rounded-3xl border border-white/10 bg-slate-900/60 p-4 backdrop-blur-xl shadow-xl shadow-slate-950/20">
+          <div :class="isLightMode ? 'rounded-3xl border border-slate-300/80 bg-white/85 p-4 backdrop-blur-xl shadow-lg shadow-slate-200/50' : 'rounded-3xl border border-white/10 bg-slate-900/60 p-4 backdrop-blur-xl shadow-xl shadow-slate-950/20'">
             <div class="flex items-center justify-between mb-3">
-              <p class="text-xs font-semibold text-white">Friends Network</p>
+              <p :class="isLightMode ? 'text-slate-900' : 'text-white'" class="text-xs font-semibold">Friends Network</p>
               <button
                 @click="openAccountModal"
                 type="button"
-                class="text-[11px] text-cyan-300 hover:underline"
+                :class="isLightMode ? 'text-cyan-700 hover:underline' : 'text-cyan-300 hover:underline'"
+                class="text-[11px]"
               >
                 Manage
               </button>
             </div>
-            <div v-if="friends.length === 0" class="text-xs text-cyan-100/50 py-2">
+            <div v-if="friends.length === 0" :class="isLightMode ? 'text-slate-500' : 'text-cyan-100/50'" class="text-xs py-2">
               No friends connected yet. Connect via email to share bookmarks.
             </div>
             <div v-else class="flex flex-wrap gap-1.5">
               <span
                 v-for="friend in friends.slice(0, 4)"
                 :key="friend.uid"
-                class="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] text-cyan-100/80"
+                :class="isLightMode ? 'border-slate-200 bg-slate-100 text-slate-800' : 'border-white/10 bg-white/5 text-cyan-100/80'"
+                class="inline-flex items-center gap-1.5 rounded-xl border px-2.5 py-1 text-[11px]"
               >
-                <span class="h-1.5 w-1.5 rounded-full bg-emerald-400"></span>
+                <span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
                 <span class="truncate max-w-[90px]">{{ friend.email.split('@')[0] }}</span>
               </span>
             </div>
@@ -636,17 +659,17 @@ onUnmounted(() => {
         <!-- Main Content Area -->
         <main class="flex-1 min-w-0 space-y-5">
           <!-- Filter Header & Control Toolbar -->
-          <div class="flex flex-col py-2 px-4 sm:flex-row sm:items-center justify-between gap-3 rounded-3xl border border-white/10 bg-slate-900/60 p-4.5 backdrop-blur-xl shadow-xl shadow-slate-950/20">
+          <div :class="isLightMode ? 'border-slate-300/80 bg-white/85 shadow-lg shadow-slate-200/50' : 'border-white/10 bg-slate-900/60 shadow-slate-950/20'" class="flex flex-col py-2 px-4 sm:flex-row sm:items-center justify-between gap-3 rounded-3xl border p-4.5 backdrop-blur-xl shadow-xl">
             <div>
               <div class="flex items-center gap-2">
-                <h1 class="text-lg sm:text-xl font-bold text-white tracking-tight">
+                <h1 :class="isLightMode ? 'text-slate-900' : 'text-white'" class="text-lg sm:text-xl font-bold tracking-tight">
                   {{ selectedFolderFilter === 'ALL' ? 'All Bookmarks' : selectedFolderFilter === 'SHARED' ? 'Shared with Me' : selectedFolderFilter === 'RECENT' ? 'Recent Links' : selectedFolderFilter }}
                 </h1>
-                <span class="rounded-full bg-cyan-500/20 border border-cyan-400/30 px-2.5 py-0.5 text-xs font-semibold text-cyan-200">
+                <span class="rounded-full bg-cyan-500/20 border border-cyan-400/30 px-2.5 py-0.5 text-xs font-semibold text-cyan-700 dark:text-cyan-200">
                   {{ displayedBookmarks.length }}
                 </span>
               </div>
-              <p class="text-xs text-cyan-100/60 mt-0.5">
+              <p :class="isLightMode ? 'text-slate-500' : 'text-cyan-100/60'" class="text-xs mt-0.5">
                 {{ selectedFolderFilter === 'ALL' ? 'Your entire digital library in one place.' : `Organized under ${selectedFolderFilter}` }}
               </p>
             </div>
@@ -656,19 +679,20 @@ onUnmounted(() => {
               <!-- Sort Dropdown -->
               <select
                 v-model="sortBy"
-                class="rounded-xl border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-cyan-100 focus:border-cyan-300 focus:outline-none"
+                :class="isLightMode ? 'border-slate-300 bg-white text-slate-800' : 'border-white/10 bg-white/5 text-cyan-100'"
+                class="rounded-xl border px-3 py-1.5 text-xs focus:border-cyan-300 focus:outline-none"
               >
-                <option value="newest" class="bg-slate-900 text-white">Sort: Newest</option>
-                <option value="name" class="bg-slate-900 text-white">Sort: Name (A-Z)</option>
-                <option value="folder" class="bg-slate-900 text-white">Sort: Folder</option>
+                <option value="newest" :class="isLightMode ? 'bg-white text-slate-900' : 'bg-slate-900 text-white'">Sort: Newest</option>
+                <option value="name" :class="isLightMode ? 'bg-white text-slate-900' : 'bg-slate-900 text-white'">Sort: Name (A-Z)</option>
+                <option value="folder" :class="isLightMode ? 'bg-white text-slate-900' : 'bg-slate-900 text-white'">Sort: Folder</option>
               </select>
 
               <!-- View Mode (Grid vs List) -->
-              <div class="flex rounded-xl bg-white/5 p-1 border border-white/10">
+              <div :class="isLightMode ? 'bg-slate-200/80 border-slate-300' : 'bg-white/5 border-white/10'" class="flex rounded-xl p-1 border">
                 <button
                   @click="viewMode = 'grid'"
                   type="button"
-                  :class="viewMode === 'grid' ? 'bg-cyan-500/25 text-white' : 'text-cyan-100/60 hover:text-white'"
+                  :class="viewMode === 'grid' ? (isLightMode ? 'bg-white text-slate-900 shadow-sm font-semibold' : 'bg-cyan-500/25 text-white') : (isLightMode ? 'text-slate-600 hover:text-slate-900' : 'text-cyan-100/60 hover:text-white')"
                   class="p-1.5 rounded-lg transition"
                   title="Grid View"
                 >
@@ -679,7 +703,7 @@ onUnmounted(() => {
                 <button
                   @click="viewMode = 'list'"
                   type="button"
-                  :class="viewMode === 'list' ? 'bg-cyan-500/25 text-white' : 'text-cyan-100/60 hover:text-white'"
+                  :class="viewMode === 'list' ? (isLightMode ? 'bg-white text-slate-900 shadow-sm font-semibold' : 'bg-cyan-500/25 text-white') : (isLightMode ? 'text-slate-600 hover:text-slate-900' : 'text-cyan-100/60 hover:text-white')"
                   class="p-1.5 rounded-lg transition"
                   title="List View"
                 >
@@ -694,13 +718,14 @@ onUnmounted(() => {
           <!-- Bookmarks Loading Spinner State -->
           <div
             v-if="bookmarksLoading"
-            class="flex flex-col items-center justify-center py-24 rounded-3xl border border-white/10 bg-slate-900/40 backdrop-blur-xl shadow-xl"
+            :class="isLightMode ? 'border-slate-200 bg-white/80 shadow-md text-slate-800' : 'border-white/10 bg-slate-900/40 shadow-xl text-cyan-200/80'"
+            class="flex flex-col items-center justify-center py-24 rounded-3xl border backdrop-blur-xl"
           >
             <div class="relative flex items-center justify-center">
               <div class="absolute h-16 w-16 rounded-full bg-cyan-400/20 blur-xl animate-pulse"></div>
               <div class="h-10 w-10 animate-spin rounded-full border-2 border-cyan-400/20 border-t-cyan-400"></div>
             </div>
-            <p class="mt-4 text-xs font-medium text-cyan-200/80 animate-pulse tracking-wide">
+            <p :class="isLightMode ? 'text-slate-700' : 'text-cyan-200/80'" class="mt-4 text-xs font-semibold animate-pulse tracking-wide">
               Loading your bookmarks...
             </p>
           </div>
@@ -708,15 +733,16 @@ onUnmounted(() => {
           <!-- Empty State (Only when API finished loading and list is empty) -->
           <div
             v-else-if="displayedBookmarks.length === 0"
-            class="rounded-3xl border border-white/10 bg-slate-900/60 p-12 text-center backdrop-blur-xl shadow-2xl"
+            :class="isLightMode ? 'border-slate-200 bg-white/95 shadow-xl' : 'border-white/10 bg-slate-900/60 shadow-2xl'"
+            class="rounded-3xl border p-12 text-center backdrop-blur-xl"
           >
-            <div class="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-cyan-300/30 bg-cyan-500/10 text-cyan-300">
+            <div class="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-cyan-500/30 bg-cyan-500/10 text-cyan-600">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
               </svg>
             </div>
-            <h3 class="text-base font-semibold text-white">No bookmarks found</h3>
-            <p class="mt-1 text-xs text-cyan-100/60 max-w-sm mx-auto">
+            <h3 :class="isLightMode ? 'text-slate-900' : 'text-white'" class="text-base font-bold">No bookmarks found</h3>
+            <p :class="isLightMode ? 'text-slate-600' : 'text-cyan-100/60'" class="mt-1 text-xs max-w-sm mx-auto">
               {{ searchQuery ? 'No bookmarks match your search keywords.' : 'Add your first bookmark to start building this collection.' }}
             </p>
             <button
@@ -736,7 +762,8 @@ onUnmounted(() => {
             <article
               v-for="bookmark in displayedBookmarks"
               :key="bookmark.id"
-              class="group relative flex flex-col justify-between rounded-3xl border border-white/10 bg-slate-900/60 p-5 backdrop-blur-xl shadow-lg shadow-slate-950/20 transition-all duration-300 hover:-translate-y-1 hover:border-cyan-400/40 hover:shadow-cyan-500/10 hover:shadow-2xl"
+              :class="isLightMode ? 'border-slate-200/90 bg-white/95 shadow-md shadow-slate-200/60 hover:border-cyan-500/50 hover:shadow-lg' : 'border-white/10 bg-slate-900/60 shadow-lg shadow-slate-950/20 hover:border-cyan-400/40 hover:shadow-cyan-500/10 hover:shadow-2xl'"
+              class="group relative flex flex-col justify-between rounded-3xl border p-5 backdrop-blur-xl transition-all duration-300 hover:-translate-y-1"
             >
               <div>
                 <!-- Card Header -->
@@ -745,7 +772,8 @@ onUnmounted(() => {
                     <img
                       :src="faviconUrl(bookmark.link)"
                       alt="favicon"
-                      class="h-7 w-7 rounded-lg ring-1 ring-white/20 flex-shrink-0 bg-slate-800 p-1"
+                      :class="isLightMode ? 'ring-slate-200 bg-slate-100' : 'ring-white/20 bg-slate-800'"
+                      class="h-7 w-7 rounded-lg ring-1 flex-shrink-0 p-1"
                       loading="lazy"
                       decoding="async"
                       width="28"
@@ -756,30 +784,35 @@ onUnmounted(() => {
                         :href="bookmark.link"
                         target="_blank"
                         rel="noopener noreferrer"
-                        class="block truncate text-sm font-semibold text-white group-hover:text-cyan-200 transition"
+                        :class="isLightMode ? 'text-slate-900 hover:text-cyan-700' : 'text-white group-hover:text-cyan-200'"
+                        class="block truncate text-sm font-semibold transition"
                       >
                         {{ bookmark.name }}
                       </a>
-                      <p class="truncate text-xs text-cyan-100/60 mt-0.5">
+                      <p :class="isLightMode ? 'text-slate-500' : 'text-cyan-100/60'" class="truncate text-xs mt-0.5">
                         {{ getDomain(bookmark.link) }}
                       </p>
                     </div>
                   </div>
 
                   <!-- Folder Tag -->
-                  <span class="rounded-full bg-white/5 border border-white/10 px-2 py-0.5 text-[10px] text-cyan-200 font-medium flex-shrink-0">
+                  <span
+                    :class="isLightMode ? 'bg-slate-100 border-slate-200 text-slate-700 font-semibold' : 'bg-white/5 border-white/10 text-cyan-200 font-medium'"
+                    class="rounded-full border px-2 py-0.5 text-[10px] flex-shrink-0"
+                  >
                     {{ bookmark.folderName || "General" }}
                   </span>
                 </div>
               </div>
 
               <!-- Card Action Footer -->
-              <div class="mt-5 flex items-center justify-between border-t border-white/5 pt-3.5">
+              <div :class="isLightMode ? 'border-slate-100' : 'border-white/5'" class="mt-5 flex items-center justify-between border-t pt-3.5">
                 <a
                   :href="bookmark.link"
                   target="_blank"
                   rel="noopener noreferrer"
-                  class="inline-flex items-center gap-1 text-xs font-medium text-cyan-300 hover:text-white transition"
+                  :class="isLightMode ? 'text-cyan-700 hover:text-cyan-900 font-semibold' : 'text-cyan-300 hover:text-white font-medium'"
+                  class="inline-flex items-center gap-1 text-xs transition"
                 >
                   <span>Visit</span>
                   <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
@@ -793,7 +826,8 @@ onUnmounted(() => {
                   <button
                     @click="copyLink(bookmark.link, bookmark.name)"
                     type="button"
-                    class="h-7 w-7 rounded-lg border border-white/10 bg-white/5 text-cyan-100/70 hover:text-white hover:bg-cyan-500/20 flex items-center justify-center transition"
+                    :class="isLightMode ? 'border-slate-200 bg-slate-100 text-slate-700 hover:text-slate-950 hover:bg-slate-200' : 'border-white/10 bg-white/5 text-cyan-100/70 hover:text-white hover:bg-cyan-500/20'"
+                    class="h-7 w-7 rounded-lg border flex items-center justify-center transition"
                     title="Copy Link"
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
@@ -806,7 +840,8 @@ onUnmounted(() => {
                   <button
                     @click="openShareModalForBookmark(bookmark)"
                     type="button"
-                    class="h-7 w-7 rounded-lg border border-white/10 bg-white/5 text-cyan-100/70 hover:text-white hover:bg-cyan-500/20 flex items-center justify-center transition"
+                    :class="isLightMode ? 'border-slate-200 bg-slate-100 text-slate-700 hover:text-slate-950 hover:bg-slate-200' : 'border-white/10 bg-white/5 text-cyan-100/70 hover:text-white hover:bg-cyan-500/20'"
+                    class="h-7 w-7 rounded-lg border flex items-center justify-center transition"
                     title="Share with Friend"
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
@@ -818,7 +853,8 @@ onUnmounted(() => {
                   <button
                     @click="openEditModal(bookmark)"
                     type="button"
-                    class="h-7 w-7 rounded-lg border border-white/10 bg-white/5 text-cyan-100/70 hover:text-white hover:bg-cyan-500/20 flex items-center justify-center transition"
+                    :class="isLightMode ? 'border-slate-200 bg-slate-100 text-slate-700 hover:text-slate-950 hover:bg-slate-200' : 'border-white/10 bg-white/5 text-cyan-100/70 hover:text-white hover:bg-cyan-500/20'"
+                    class="h-7 w-7 rounded-lg border flex items-center justify-center transition"
                     title="Edit"
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
@@ -831,7 +867,8 @@ onUnmounted(() => {
                   <button
                     @click="deleteBookmark(bookmark.id)"
                     type="button"
-                    class="h-7 w-7 rounded-lg border border-red-400/20 bg-red-500/10 text-red-200/70 hover:text-red-200 hover:bg-red-500/25 flex items-center justify-center transition"
+                    :class="isLightMode ? 'border-red-200 bg-red-50 text-red-700 hover:bg-red-100' : 'border-red-400/20 bg-red-500/10 text-red-200/70 hover:text-red-200 hover:bg-red-500/25'"
+                    class="h-7 w-7 rounded-lg border flex items-center justify-center transition"
                     title="Delete"
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
@@ -846,19 +883,22 @@ onUnmounted(() => {
           <!-- VIEW MODE 2: COMPACT LIST VIEW -->
           <div
             v-else
-            class="rounded-3xl border border-white/10 bg-slate-900/60 backdrop-blur-xl overflow-hidden shadow-2xl shadow-slate-950/30"
+            :class="isLightMode ? 'border-slate-200 bg-white/95 shadow-xl shadow-slate-200/50' : 'border-white/10 bg-slate-900/60 shadow-2xl shadow-slate-950/30'"
+            class="rounded-3xl border backdrop-blur-xl overflow-hidden"
           >
-            <div class="divide-y divide-white/5">
+            <div :class="isLightMode ? 'divide-y divide-slate-100' : 'divide-y divide-white/5'">
               <div
                 v-for="bookmark in displayedBookmarks"
                 :key="bookmark.id"
-                class="group flex items-center justify-between p-4 transition hover:bg-cyan-500/10 gap-3"
+                :class="isLightMode ? 'hover:bg-slate-50/80' : 'hover:bg-cyan-500/10'"
+                class="group flex items-center justify-between p-4 transition gap-3"
               >
                 <div class="flex items-center gap-3.5 min-w-0 flex-1">
                   <img
                     :src="faviconUrl(bookmark.link)"
                     alt="favicon"
-                    class="h-6 w-6 rounded-md ring-1 ring-white/20 flex-shrink-0 bg-slate-800 p-0.5"
+                    :class="isLightMode ? 'ring-slate-200 bg-slate-100' : 'ring-white/20 bg-slate-800'"
+                    class="h-6 w-6 rounded-md ring-1 flex-shrink-0 p-0.5"
                     loading="lazy"
                     decoding="async"
                     width="24"
@@ -869,18 +909,22 @@ onUnmounted(() => {
                       :href="bookmark.link"
                       target="_blank"
                       rel="noopener noreferrer"
-                      class="text-sm font-semibold text-white hover:text-cyan-200 truncate block"
+                      :class="isLightMode ? 'text-slate-900 hover:text-cyan-700' : 'text-white hover:text-cyan-200'"
+                      class="text-sm font-semibold truncate block"
                     >
                       {{ bookmark.name }}
                     </a>
-                    <p class="text-xs text-cyan-100/60 truncate">
+                    <p :class="isLightMode ? 'text-slate-500' : 'text-cyan-100/60'" class="text-xs truncate">
                       {{ getDomain(bookmark.link) }}
                     </p>
                   </div>
                 </div>
 
                 <div class="flex items-center gap-3 flex-shrink-0">
-                  <span class="hidden sm:inline-block rounded-full bg-white/5 border border-white/10 px-2.5 py-0.5 text-[10px] text-cyan-200">
+                  <span
+                    :class="isLightMode ? 'bg-slate-100 border-slate-200 text-slate-700 font-semibold' : 'bg-white/5 border-white/10 text-cyan-200 font-medium'"
+                    class="hidden sm:inline-block rounded-full border px-2.5 py-0.5 text-[10px]"
+                  >
                     {{ bookmark.folderName || "General" }}
                   </span>
 
@@ -888,7 +932,8 @@ onUnmounted(() => {
                     <button
                       @click="copyLink(bookmark.link, bookmark.name)"
                       type="button"
-                      class="h-8 w-8 rounded-xl border border-white/10 bg-white/5 text-cyan-100/70 hover:text-white hover:bg-cyan-500/20 flex items-center justify-center transition"
+                      :class="isLightMode ? 'border-slate-200 bg-slate-100 text-slate-700 hover:text-slate-950 hover:bg-slate-200' : 'border-white/10 bg-white/5 text-cyan-100/70 hover:text-white hover:bg-cyan-500/20'"
+                      class="h-8 w-8 rounded-xl border flex items-center justify-center transition"
                       title="Copy Link"
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
@@ -900,7 +945,8 @@ onUnmounted(() => {
                     <button
                       @click="openShareModalForBookmark(bookmark)"
                       type="button"
-                      class="h-8 w-8 rounded-xl border border-white/10 bg-white/5 text-cyan-100/70 hover:text-white hover:bg-cyan-500/20 flex items-center justify-center transition"
+                      :class="isLightMode ? 'border-slate-200 bg-slate-100 text-slate-700 hover:text-slate-950 hover:bg-slate-200' : 'border-white/10 bg-white/5 text-cyan-100/70 hover:text-white hover:bg-cyan-500/20'"
+                      class="h-8 w-8 rounded-xl border flex items-center justify-center transition"
                       title="Share"
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
@@ -911,7 +957,8 @@ onUnmounted(() => {
                     <button
                       @click="openEditModal(bookmark)"
                       type="button"
-                      class="h-8 w-8 rounded-xl border border-white/10 bg-white/5 text-cyan-100/70 hover:text-white hover:bg-cyan-500/20 flex items-center justify-center transition"
+                      :class="isLightMode ? 'border-slate-200 bg-slate-100 text-slate-700 hover:text-slate-950 hover:bg-slate-200' : 'border-white/10 bg-white/5 text-cyan-100/70 hover:text-white hover:bg-cyan-500/20'"
+                      class="h-8 w-8 rounded-xl border flex items-center justify-center transition"
                       title="Edit"
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
@@ -923,7 +970,8 @@ onUnmounted(() => {
                     <button
                       @click="deleteBookmark(bookmark.id)"
                       type="button"
-                      class="h-8 w-8 rounded-xl border border-red-400/20 bg-red-500/10 text-red-200/70 hover:text-red-200 hover:bg-red-500/25 flex items-center justify-center transition"
+                      :class="isLightMode ? 'border-red-200 bg-red-50 text-red-700 hover:bg-red-100' : 'border-red-400/20 bg-red-500/10 text-red-200/70 hover:text-red-200 hover:bg-red-500/25'"
+                      class="h-8 w-8 rounded-xl border flex items-center justify-center transition"
                       title="Delete"
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
@@ -953,11 +1001,12 @@ onUnmounted(() => {
           @click.self="isAddModalOpen = false"
         >
           <div
-            class="w-full max-w-lg rounded-3xl border border-cyan-300/30 bg-slate-900/95 p-6 text-white shadow-2xl shadow-slate-950/90 backdrop-blur-2xl"
+            :class="isLightMode ? 'border-slate-200 bg-white text-slate-900 shadow-2xl' : 'border-cyan-300/30 bg-slate-900/95 text-white shadow-slate-950/90 shadow-2xl'"
+            class="w-full max-w-lg rounded-3xl border p-6 backdrop-blur-2xl"
           >
-            <div class="flex items-center justify-between pb-4 border-b border-white/10">
-              <h3 class="text-base font-bold text-white flex items-center gap-2">
-                <span class="flex h-7 w-7 items-center justify-center rounded-lg bg-cyan-500/20 text-cyan-300">
+            <div :class="isLightMode ? 'border-slate-200' : 'border-white/10'" class="flex items-center justify-between pb-4 border-b">
+              <h3 :class="isLightMode ? 'text-slate-900' : 'text-white'" class="text-base font-bold flex items-center gap-2">
+                <span class="flex h-7 w-7 items-center justify-center rounded-lg bg-cyan-500/20 text-cyan-600">
                   ✦
                 </span>
                 <span>{{ editingBookmarkData ? 'Edit Bookmark' : 'Add New Bookmark' }}</span>
@@ -965,7 +1014,8 @@ onUnmounted(() => {
               <button
                 @click="isAddModalOpen = false"
                 type="button"
-                class="rounded-xl border border-white/10 bg-white/5 p-1.5 text-cyan-100/60 hover:text-white"
+                :class="isLightMode ? 'border-slate-200 bg-slate-100 text-slate-500 hover:text-slate-900' : 'border-white/10 bg-white/5 text-cyan-100/60 hover:text-white'"
+                class="rounded-xl border p-1.5"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                   <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
@@ -976,7 +1026,7 @@ onUnmounted(() => {
             <form @submit.prevent="handleModalSubmit" class="mt-5 space-y-4">
               <!-- URL Input -->
               <div>
-                <label class="block text-xs font-semibold uppercase tracking-wider text-cyan-200/80 mb-1.5">
+                <label :class="isLightMode ? 'text-slate-700' : 'text-cyan-200/80'" class="block text-xs font-semibold uppercase tracking-wider mb-1.5">
                   Destination URL
                 </label>
                 <input
@@ -984,13 +1034,14 @@ onUnmounted(() => {
                   type="text"
                   placeholder="https://example.com"
                   required
-                  class="w-full rounded-2xl border border-white/15 bg-white/10 py-3 px-4 text-sm text-white placeholder-cyan-100/40 focus:border-cyan-400 focus:outline-none focus:ring-2 focus:ring-cyan-400/40"
+                  :class="isLightMode ? 'border-slate-300 bg-slate-50 text-slate-900 placeholder-slate-400 focus:border-cyan-600 focus:ring-cyan-500/30' : 'border-white/15 bg-white/10 text-white placeholder-cyan-100/40 focus:border-cyan-400 focus:ring-cyan-400/40'"
+                  class="w-full rounded-2xl border py-3 px-4 text-sm focus:outline-none focus:ring-2"
                 />
               </div>
 
               <!-- Title Input -->
               <div>
-                <label class="block text-xs font-semibold uppercase tracking-wider text-cyan-200/80 mb-1.5">
+                <label :class="isLightMode ? 'text-slate-700' : 'text-cyan-200/80'" class="block text-xs font-semibold uppercase tracking-wider mb-1.5">
                   Bookmark Title
                 </label>
                 <input
@@ -998,20 +1049,22 @@ onUnmounted(() => {
                   type="text"
                   placeholder="e.g. Stripe Developer Docs"
                   required
-                  class="w-full rounded-2xl border border-white/15 bg-white/10 py-3 px-4 text-sm text-white placeholder-cyan-100/40 focus:border-cyan-400 focus:outline-none focus:ring-2 focus:ring-cyan-400/40"
+                  :class="isLightMode ? 'border-slate-300 bg-slate-50 text-slate-900 placeholder-slate-400 focus:border-cyan-600 focus:ring-cyan-500/30' : 'border-white/15 bg-white/10 text-white placeholder-cyan-100/40 focus:border-cyan-400 focus:ring-cyan-400/40'"
+                  class="w-full rounded-2xl border py-3 px-4 text-sm focus:outline-none focus:ring-2"
                 />
               </div>
 
               <!-- Folder Input / Suggestions -->
               <div>
-                <label class="block text-xs font-semibold uppercase tracking-wider text-cyan-200/80 mb-1.5">
+                <label :class="isLightMode ? 'text-slate-700' : 'text-cyan-200/80'" class="block text-xs font-semibold uppercase tracking-wider mb-1.5">
                   Folder / Collection
                 </label>
                 <input
                   v-model="modalFolder"
                   type="text"
                   placeholder="General"
-                  class="w-full rounded-2xl border border-white/15 bg-white/10 py-3 px-4 text-sm text-white placeholder-cyan-100/40 focus:border-cyan-400 focus:outline-none focus:ring-2 focus:ring-cyan-400/40"
+                  :class="isLightMode ? 'border-slate-300 bg-slate-50 text-slate-900 placeholder-slate-400 focus:border-cyan-600 focus:ring-cyan-500/30' : 'border-white/15 bg-white/10 text-white placeholder-cyan-100/40 focus:border-cyan-400 focus:ring-cyan-400/40'"
+                  class="w-full rounded-2xl border py-3 px-4 text-sm focus:outline-none focus:ring-2"
                 />
                 <!-- Quick Folder Chips -->
                 <div v-if="allFoldersList.length > 0" class="mt-2 flex flex-wrap gap-1.5">
@@ -1020,7 +1073,8 @@ onUnmounted(() => {
                     :key="folder"
                     @click="modalFolder = folder"
                     type="button"
-                    class="rounded-lg border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] text-cyan-100/70 hover:bg-cyan-500/20 hover:text-white"
+                    :class="isLightMode ? 'border-slate-200 bg-slate-100 text-slate-700 hover:bg-slate-200 hover:text-slate-950' : 'border-white/10 bg-white/5 text-cyan-100/70 hover:bg-cyan-500/20 hover:text-white'"
+                    class="rounded-lg border px-2.5 py-1 text-[11px] font-medium"
                   >
                     {{ folder }}
                   </button>
@@ -1032,7 +1086,8 @@ onUnmounted(() => {
                 <button
                   @click="isAddModalOpen = false"
                   type="button"
-                  class="rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-xs font-medium text-cyan-100/80 hover:bg-white/10"
+                  :class="isLightMode ? 'border-slate-200 bg-slate-100 text-slate-700 hover:bg-slate-200 hover:text-slate-900' : 'border-white/10 bg-white/5 text-cyan-100/80 hover:bg-white/10'"
+                  class="rounded-xl border px-4 py-2.5 text-xs font-medium"
                 >
                   Cancel
                 </button>
