@@ -137,20 +137,20 @@ function quickShareWithFriend(friend) {
   >
     <div
       v-if="open"
-      class="fixed inset-0 z-[140] flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 sm:p-6"
+      class="fixed inset-0 z-[140] flex items-center justify-center bg-black/60 backdrop-blur-xs p-3 sm:p-6"
       @click.self="$emit('close')"
     >
       <section
-        class="relative flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-3xl border border-[#dadce0] dark:border-[#5f6368] bg-white dark:bg-[#202124] text-[#202124] dark:text-[#e8eaed] shadow-2xl transition-colors font-sans"
+        class="relative flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl sm:rounded-3xl border border-[#dadce0] dark:border-[#5f6368] bg-white dark:bg-[#202124] text-[#202124] dark:text-[#e8eaed] shadow-2xl transition-colors font-sans"
       >
         <!-- Google Material 3 Modal Header -->
         <header
-          class="flex items-center justify-between border-b border-[#dadce0] dark:border-[#5f6368]/60 px-6 py-4"
+          class="flex items-center justify-between border-b border-[#dadce0] dark:border-[#5f6368]/60 px-4 sm:px-6 py-3.5 sm:py-4"
         >
-          <div class="flex items-center gap-3.5 min-w-0">
+          <div class="flex items-center gap-3 min-w-0">
             <!-- Google Profile Avatar Circle -->
             <div
-              class="h-10 w-10 rounded-full flex items-center justify-center flex-shrink-0 text-sm font-semibold bg-[#1a73e8] text-white shadow-xs select-none"
+              class="h-9 w-9 sm:h-10 sm:w-10 rounded-full flex items-center justify-center flex-shrink-0 text-sm font-semibold bg-[#1a73e8] text-white shadow-xs select-none"
             >
               {{ authUser?.email ? authUser.email.charAt(0).toUpperCase() : 'G' }}
             </div>
@@ -158,7 +158,7 @@ function quickShareWithFriend(friend) {
               <h2 class="text-base sm:text-lg font-medium tracking-tight text-[#202124] dark:text-[#e8eaed]">
                 Share & Account
               </h2>
-              <p class="text-xs text-[#5f6368] dark:text-[#9aa0a6] truncate max-w-[200px] sm:max-w-md">
+              <p class="text-xs text-[#5f6368] dark:text-[#9aa0a6] truncate max-w-[170px] sm:max-w-md">
                 {{ authUser?.email }}
               </p>
             </div>
@@ -180,7 +180,7 @@ function quickShareWithFriend(friend) {
         </header>
 
         <!-- Google Material 3 Segmented Capsule Tabs -->
-        <div class="px-6 pt-4 pb-1">
+        <div class="px-4 sm:px-6 pt-3 sm:pt-4 pb-1">
           <div class="flex gap-1 rounded-full bg-[#f1f3f4] dark:bg-[#303134] p-1 border border-black/5 dark:border-white/5">
             <button
               @click="activeTab = 'share'"
@@ -245,7 +245,7 @@ function quickShareWithFriend(friend) {
         </div>
 
         <!-- Modal Body Content -->
-        <div class="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+        <div class="flex-1 overflow-y-auto px-4 sm:px-6 py-4 space-y-4">
           <!-- Status Alerts -->
           <transition
             enter-active-class="transition duration-200 ease-out"
