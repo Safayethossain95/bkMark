@@ -1,23 +1,15 @@
 import { createRouter, createWebHistory } from "vue-router";
-import RevampedView from "./views/RevampedView.vue";
-import ClassicView from "./views/ClassicView.vue";
 import GoogleView from "./views/GoogleView.vue";
 
 const routes = [
   {
     path: "/",
-    name: "Revamped",
-    component: RevampedView,
-  },
-  {
-    path: "/version2",
-    name: "Classic",
-    component: ClassicView,
+    name: "Google",
+    component: GoogleView,
   },
   {
     path: "/google",
-    name: "Google",
-    component: GoogleView,
+    redirect: "/",
   },
   {
     path: "/:pathMatch(.*)*",
@@ -31,3 +23,4 @@ const router = createRouter({
 });
 
 export default router;
+
