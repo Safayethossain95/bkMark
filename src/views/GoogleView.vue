@@ -46,7 +46,7 @@ const {
   allFoldersList,
 } = useBookmarks();
 
-// Google Keep Minimal Flat Color Tokens (No Heavy Glows)
+// bk Keep Minimal Flat Color Tokens (No Heavy Glows)
 const KEEP_COLORS = [
   { name: "Default", bg: "#ffffff", darkBg: "#202124", border: "#dadce0", darkBorder: "#3c4043" },
   { name: "Coral", bg: "#fce8e6", darkBg: "#4a2422", border: "#f28b82", darkBorder: "#683330" },
@@ -773,6 +773,7 @@ onUnmounted(() => {
       :selectedBookmarkId="selectedShareBookmarkId"
       :actionError="accountActionError"
       :actionSuccess="accountActionSuccess"
+      :isDark="isDark"
       @close="closeAccountModal"
       @logout="logout"
       @update:friendEmail="(val) => (friendEmail = val)"
@@ -793,7 +794,7 @@ onUnmounted(() => {
       <div class="h-8 w-8 animate-spin rounded-full border-2 border-amber-400/30 border-t-amber-500"></div>
     </div>
 
-    <!-- Authenticated Google Keep Workspace -->
+    <!-- Authenticated bk Keep Workspace -->
     <div v-else-if="authUser" class="flex-1 flex flex-col">
       <!-- Minimal Flat Header -->
       <header
@@ -840,7 +841,7 @@ onUnmounted(() => {
 
         <!-- Normal Header View -->
         <template v-else>
-          <!-- Left: Hamburger + Google Keep Logo -->
+          <!-- Left: Hamburger + bk Keep Logo -->
           <div class="flex items-center gap-2 sm:gap-3 flex-shrink-0">
             <button
               @click="isSidebarOpen = !isSidebarOpen"
@@ -990,7 +991,7 @@ onUnmounted(() => {
               @click="openAccountModal"
               type="button"
               class="relative h-8 w-8 rounded-full border border-amber-500/40 flex items-center justify-center bg-amber-500 text-slate-950 font-bold text-xs transition cursor-pointer"
-              title="Google Account & Sync"
+              title="bk Keep Account & Sync"
             >
               <span>{{ authUser?.email?.charAt(0).toUpperCase() || 'G' }}</span>
               <span
@@ -2163,36 +2164,47 @@ onUnmounted(() => {
     </div>
 
     <!-- Unauthenticated View -->
-    <div v-else class="flex-1 flex items-center justify-center p-4 min-h-[85vh]">
-      <div
-        :class="isDark ? 'bg-[#303134] border-[#3c4043]' : 'bg-white border-[#dadce0]'"
-        class="w-full max-w-md rounded-xl border p-7 space-y-5 shadow-none"
-      >
-        <div class="flex flex-col items-center text-center">
-          <div class="h-12 w-12 rounded-full bg-amber-400/20 flex items-center justify-center mb-2">
-            <svg class="h-7 w-7" viewBox="0 0 48 48">
-              <path fill="#FFBB00" d="M24,4C14.06,4,6,12.06,6,22c0,6.07,3.03,11.44,7.67,14.68C14.49,37.26,15,38.16,15,39.12V40c0,1.1,0.9,2,2,2h14 c1.1,0,2-0.9,2-2v-0.88c0-0.96,0.51-1.86,1.33-2.44C38.97,33.44,42,28.07,42,22C42,12.06,33.94,4,24,4z"/>
-              <path fill="#E65100" d="M19,41h10v2c0,0.55-0.45,1-1,1h-8c-0.55,0-1-0.45-1-1V41z"/>
-              <path fill="#FFE082" d="M24,7c7.72,0,14,6.28,14,14c0,4.72-2.35,8.89-5.96,11.4C30.82,33.25,30,34.61,30,36.05V37h-3v-7 c0-0.55-0.45-1-1-1s-1,0.45-1,1v7h-2v-7c0-0.55-0.45-1-1-1s-1,0.45-1,1v7h-3v-0.95c0-1.44-0.82-2.8-2.04-3.65 C12.35,29.89,10,25.72,10,21C10,13.28,16.28,7,24,7z"/>
-            </svg>
-          </div>
-          <h2 class="text-xl font-medium tracking-tight text-[#202124] dark:text-[#e8eaed]">Sign in to Keep</h2>
-          <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Sync your bookmarks and labels seamlessly</p>
-        </div>
-
-        <LoginPanel
-          :authMode="authMode"
-          :authEmail="authEmail"
-          :authPassword="authPassword"
-          :authError="authError"
-          @update:authMode="(val) => (authMode = val)"
-          @update:authEmail="(val) => (authEmail = val)"
-          @update:authPassword="(val) => (authPassword = val)"
-          @login="login"
-          @signup="signup"
-          @google-login="loginWithGoogle"
-        />
+    <div v-else class="flex-1 flex flex-col items-center justify-center p-4 py-8 min-h-[90vh] relative select-none">
+      <!-- Dark/Light theme toggle on top right -->
+      <div class="absolute top-4 right-4">
+        <button
+          @click="toggleDarkMode"
+          type="button"
+          :class="isDark ? 'hover:bg-[#303134] text-[#9aa0a6]' : 'hover:bg-gray-100 text-[#5f6368]'"
+          class="h-10 w-10 rounded-full flex items-center justify-center transition-colors cursor-pointer border border-transparent hover:border-[#dadce0] dark:hover:border-[#3c4043]"
+          :title="isDark ? 'Switch to Light theme' : 'Switch to Dark theme'"
+        >
+          <svg v-if="!isDark" class="h-4 w-4 fill-current" viewBox="0 0 24 24">
+            <path d="M12 3a9 9 0 109 9c0-.46-.04-.92-.1-1.36a5.389 5.389 0 01-4.4 2.26 5.403 5.403 0 01-3.14-9.8c-.44-.06-.9-.1-1.36-.1z"/>
+          </svg>
+          <svg v-else class="h-4 w-4 fill-current" viewBox="0 0 24 24">
+            <path d="M12 7c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zM2 13h2c.55 0 1-.45 1-1s-.45-1-1-1H2c-.55 0-1 .45-1 1s.45 1 1 1zm18 0h2c.55 0 1-.45 1-1s-.45-1-1-1h-2c-.55 0-1 .45-1 1s.45 1 1 1zM11 2v2c0 .55.45 1 1 1s1-.45 1-1V2c0-.55-.45-1-1-1s-1 .45-1 1zm0 18v2c0 .55.45 1 1 1s1-.45 1-1v-2c0-.55-.45-1-1-1s-1 .45-1 1z"/>
+          </svg>
+        </button>
       </div>
+
+      <LoginPanel
+        :authMode="authMode"
+        :authEmail="authEmail"
+        :authPassword="authPassword"
+        :authError="authError"
+        :isDark="isDark"
+        @update:authMode="(val) => (authMode = val)"
+        @update:authEmail="(val) => (authEmail = val)"
+        @update:authPassword="(val) => (authPassword = val)"
+        @login="login"
+        @signup="signup"
+        @google-login="loginWithGoogle"
+      />
+
+      <!-- Google Minimalist Footer -->
+      <footer class="mt-6 text-xs text-[#5f6368] dark:text-[#9aa0a6] flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
+        <span>bk Keep • bookmarks</span>
+        <span>•</span>
+        <a href="https://support.google.com/keep" target="_blank" rel="noopener" class="hover:underline hover:text-[#202124] dark:hover:text-[#e8eaed]">Help</a>
+        <a href="https://policies.google.com/privacy" target="_blank" rel="noopener" class="hover:underline hover:text-[#202124] dark:hover:text-[#e8eaed]">Privacy</a>
+        <a href="https://policies.google.com/terms" target="_blank" rel="noopener" class="hover:underline hover:text-[#202124] dark:hover:text-[#e8eaed]">Terms</a>
+      </footer>
     </div>
   </div>
 </template>
