@@ -2061,7 +2061,7 @@ onUnmounted(() => {
                       <!-- Rich Link Preview inside Composer if URL is set -->
                       <div
                         v-if="publicLink"
-                        :class="isDark ? 'bg-[#3a3b3c] border-[#4e4f50]' : 'bg-[#f0f2f5] border-gray-200'"
+                        :class="isDark ? 'bg-[#2a2b2d] border-[#3e4043]' : 'bg-[#faf9f6] border-[#e8e7e3]'"
                         class="rounded-xl border p-3 flex items-center gap-3"
                       >
                         <div class="w-10 h-10 rounded-lg bg-white flex items-center justify-center flex-shrink-0 shadow-xs border overflow-hidden">
@@ -2178,7 +2178,7 @@ onUnmounted(() => {
                         :href="ensureHttpUrl(item.link)"
                         target="_blank"
                         rel="noopener noreferrer"
-                        :class="isDark ? 'bg-[#3a3b3c]/50 hover:bg-[#3a3b3c] border-[#4e4f50]' : 'bg-[#f0f2f5] hover:bg-[#e4e6e9] border-gray-200'"
+                        :class="isDark ? 'bg-[#2a2b2d] hover:bg-[#333437] border-[#3e4043]' : 'bg-[#faf9f6] hover:bg-[#f4f3ee] border-[#e8e7e3]'"
                         class="block rounded-xl border overflow-hidden transition group cursor-pointer"
                       >
                         <div class="p-3 flex items-start gap-3">
@@ -2475,7 +2475,7 @@ onUnmounted(() => {
                         :href="ensureHttpUrl(bookmark.link)"
                         target="_blank"
                         rel="noopener noreferrer"
-                        :class="isDark ? 'bg-[#3a3b3c]/50 hover:bg-[#3a3b3c] border-[#4e4f50]' : 'bg-[#f0f2f5] hover:bg-[#e4e6e9] border-gray-200'"
+                        :class="isDark ? 'bg-[#2a2b2d] hover:bg-[#333437] border-[#3e4043]' : 'bg-[#faf9f6] hover:bg-[#f4f3ee] border-[#e8e7e3]'"
                         class="block rounded-xl border overflow-hidden transition group cursor-pointer"
                       >
                         <div class="p-3 flex items-start gap-3">
