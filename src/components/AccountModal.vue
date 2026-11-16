@@ -43,6 +43,28 @@ const activeTab = ref("share");
 const bookmarkSearch = ref("");
 const isBookmarkPickerOpen = ref(false);
 const linkCopied = ref(false);
+const avatarLoadFailed = ref(false);
+
+const userAvatarUrl = computed(() => {
+  if (props.authUser?.photoURL) {
+    return props.authUser.photoURL;
+  }
+  const providerPhoto = props.authUser?.providerData?.find((p) => p?.photoURL)?.photoURL;
+  if (providerPhoto) {
+    return providerPhoto;
+  }
+  if (props.authUser?.email) {
+    return `https://unavatar.io/${encodeURIComponent(props.authUser.email.trim())}?fallback=false`;
+  }
+  return null;
+});
+
+watch(
+  () => props.authUser?.email,
+  () => {
+    avatarLoadFailed.value = false;
+  }
+);
 
 watch(
   () => props.open,
@@ -55,7 +77,7 @@ watch(
         activeTab.value = "share";
       }
     }
-  }
+  },
 );
 
 watch(
@@ -64,7 +86,7 @@ watch(
     if (newId) {
       activeTab.value = "share";
     }
-  }
+  },
 );
 
 const domainCache = new Map();
@@ -96,7 +118,7 @@ const selectedBookmark = computed(() => {
   if (!props.selectedBookmarkId) return null;
   return (
     props.bookmarks.find(
-      (b) => String(b.id) === String(props.selectedBookmarkId)
+      (b) => String(b.id) === String(props.selectedBookmarkId),
     ) || null
   );
 });
@@ -108,7 +130,7 @@ const filteredShareBookmarks = computed(() => {
     (b) =>
       (b.name || "").toLowerCase().includes(q) ||
       (b.folderName || "").toLowerCase().includes(q) ||
-      (b.link || "").toLowerCase().includes(q)
+      (b.link || "").toLowerCase().includes(q),
   );
 });
 
@@ -154,34 +176,40 @@ async function copySelectedLink() {
 </script>
 
 <template>
-  <transition
-    enter-active-class="transition duration-150 ease-out"
-    enter-from-class="opacity-0 scale-98"
-    enter-to-class="opacity-100 scale-100"
-    leave-active-class="transition duration-100 ease-in"
-    leave-from-class="opacity-100 scale-100"
-    leave-to-class="opacity-0 scale-98"
-  >
-    <div
-      v-if="open"
-      class="fixed inset-0 z-[140] flex items-center justify-center bg-black/60 backdrop-blur-[2px] p-3 sm:p-5"
-      @click.self="$emit('close')"
-    >
-      <section
-        class="relative flex max-h-[92vh] w-full max-w-xl flex-col overflow-hidden rounded-[28px] border border-[#dadce0] dark:border-[#3c4043] bg-white dark:bg-[#202124] text-[#202124] dark:text-[#e8eaed] shadow-[0_24px_48px_rgba(60,64,67,0.18),0_12px_24px_rgba(60,64,67,0.12)] dark:shadow-[0_24px_48px_rgba(0,0,0,0.6)] font-google transition-colors duration-150"
+  <Teleport to="body">
+    <transition name="modal-bounce" :duration="{ enter: 380, leave: 200 }">
+      <div
+        v-if="open"
+        class="fixed inset-0 top-0 left-0 right-0 bottom-0 w-screen h-screen min-h-screen z-[999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-3 sm:p-5 m-0 overflow-y-auto"
+        @click.self="$emit('close')"
       >
+        <section
+          class="modal-card-animate relative flex max-h-[92vh] w-full max-w-xl flex-col overflow-hidden rounded-md border border-[#dadce0] dark:border-[#3c4043] bg-white dark:bg-[#202124] text-[#202124] dark:text-[#e8eaed] shadow-[0_12px_32px_rgba(60,64,67,0.15)] dark:shadow-[0_12px_32px_rgba(0,0,0,0.6)] font-google transition-colors duration-150 my-auto"
+        >
         <!-- Google Material Header -->
         <header
-          class="flex items-center justify-between border-b border-[#dadce0] dark:border-[#3c4043] px-5 sm:px-6 py-4 select-none"
+          class="flex items-center justify-between border-b border-[#dadce0] dark:border-[#3c4043] px-5 sm:px-6 py-3.5 select-none"
         >
           <div class="flex items-center gap-3 min-w-0">
             <div
-              class="h-9 w-9 rounded-full flex items-center justify-center flex-shrink-0 text-sm font-semibold bg-[#1a73e8] dark:bg-[#8ab4f8] text-white dark:text-[#202124] shadow-sm"
+              class="h-8 w-8 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-semibold bg-[#1a73e8] dark:bg-[#8ab4f8] text-white dark:text-[#202124] shadow-sm overflow-hidden"
             >
-              {{ authUser?.email ? authUser.email.charAt(0).toUpperCase() : "G" }}
+              <img
+                v-if="userAvatarUrl && !avatarLoadFailed"
+                :src="userAvatarUrl"
+                alt="Profile photo"
+                class="w-full h-full object-cover rounded-full"
+                referrerpolicy="no-referrer"
+                @error="avatarLoadFailed = true"
+              />
+              <span v-else>
+                {{ authUser?.email ? authUser.email.charAt(0).toUpperCase() : "G" }}
+              </span>
             </div>
             <div class="min-w-0">
-              <h2 class="text-base font-normal tracking-tight text-[#202124] dark:text-[#e8eaed] truncate">
+              <h2
+                class="text-sm sm:text-base font-medium tracking-tight text-[#202124] dark:text-[#e8eaed] truncate"
+              >
                 <span v-if="activeTab === 'share' && selectedBookmark">
                   Share "{{ selectedBookmark.name }}"
                 </span>
@@ -191,11 +219,11 @@ async function copySelectedLink() {
                 <span v-else-if="activeTab === 'friends'">
                   Collaborators & Friends
                 </span>
-                <span v-else>
-                  bk Keep Account
-                </span>
+                <span v-else> bk Keep Account </span>
               </h2>
-              <p class="text-xs text-[#5f6368] dark:text-[#9aa0a6] truncate max-w-[260px] sm:max-w-xs">
+              <p
+                class="text-[11px] text-[#5f6368] dark:text-[#9aa0a6] truncate max-w-[260px] sm:max-w-xs"
+              >
                 {{ authUser?.email }}
               </p>
             </div>
@@ -204,7 +232,7 @@ async function copySelectedLink() {
           <button
             @click="$emit('close')"
             type="button"
-            class="h-9 w-9 rounded-full flex items-center justify-center text-[#5f6368] dark:text-[#9aa0a6] hover:bg-black/5 dark:hover:bg-white/10 transition cursor-pointer"
+            class="h-8 w-8 rounded-md flex items-center justify-center text-[#5f6368] dark:text-[#9aa0a6] hover:bg-black/5 dark:hover:bg-white/10 transition cursor-pointer"
             aria-label="Close"
             title="Close"
           >
@@ -216,10 +244,12 @@ async function copySelectedLink() {
           </button>
         </header>
 
-        <!-- Google Material 3 Segmented Tabs -->
-        <div class="px-5 sm:px-6 pt-3.5 pb-2 border-b border-[#dadce0] dark:border-[#3c4043]">
+        <!-- Google Material 3 Segmented Tabs (Keep Style) -->
+        <div
+          class="px-5 sm:px-6 pt-3 pb-2.5 border-b border-[#dadce0] dark:border-[#3c4043]"
+        >
           <div
-            class="flex gap-1 bg-[#f1f3f4] dark:bg-[#303134] p-1 rounded-full border border-[#dadce0] dark:border-[#3c4043]"
+            class="flex gap-1 bg-[#f1f3f4] dark:bg-[#303134] p-1 rounded-lg border border-[#dadce0] dark:border-[#3c4043]"
           >
             <button
               @click="activeTab = 'share'"
@@ -227,9 +257,9 @@ async function copySelectedLink() {
               :class="
                 activeTab === 'share'
                   ? 'bg-white dark:bg-[#202124] text-[#1a73e8] dark:text-[#8ab4f8] shadow-sm font-semibold'
-                  : 'text-[#5f6368] dark:text-[#9aa0a6] hover:text-[#202124] dark:hover:text-white font-medium'
+                  : 'text-[#5f6368] dark:text-[#9aa0a6] hover:text-[#202124] dark:hover:text-white font-medium hover:bg-black/5 dark:hover:bg-white/5'
               "
-              class="flex-1 flex items-center justify-center gap-1.5 rounded-full py-1.5 px-3 text-xs transition cursor-pointer"
+              class="flex-1 flex items-center justify-center gap-1.5 rounded-md py-1.5 px-3 text-xs transition cursor-pointer"
             >
               <svg class="h-3.5 w-3.5 fill-current" viewBox="0 0 24 24">
                 <path
@@ -245,9 +275,9 @@ async function copySelectedLink() {
               :class="
                 activeTab === 'friends'
                   ? 'bg-white dark:bg-[#202124] text-[#1a73e8] dark:text-[#8ab4f8] shadow-sm font-semibold'
-                  : 'text-[#5f6368] dark:text-[#9aa0a6] hover:text-[#202124] dark:hover:text-white font-medium'
+                  : 'text-[#5f6368] dark:text-[#9aa0a6] hover:text-[#202124] dark:hover:text-white font-medium hover:bg-black/5 dark:hover:bg-white/5'
               "
-              class="flex-1 flex items-center justify-center gap-1.5 rounded-full py-1.5 px-3 text-xs transition cursor-pointer"
+              class="flex-1 flex items-center justify-center gap-1.5 rounded-md py-1.5 px-3 text-xs transition cursor-pointer"
             >
               <svg class="h-3.5 w-3.5 fill-current" viewBox="0 0 24 24">
                 <path
@@ -269,9 +299,9 @@ async function copySelectedLink() {
               :class="
                 activeTab === 'profile'
                   ? 'bg-white dark:bg-[#202124] text-[#1a73e8] dark:text-[#8ab4f8] shadow-sm font-semibold'
-                  : 'text-[#5f6368] dark:text-[#9aa0a6] hover:text-[#202124] dark:hover:text-white font-medium'
+                  : 'text-[#5f6368] dark:text-[#9aa0a6] hover:text-[#202124] dark:hover:text-white font-medium hover:bg-black/5 dark:hover:bg-white/5'
               "
-              class="flex-1 flex items-center justify-center gap-1.5 rounded-full py-1.5 px-3 text-xs transition cursor-pointer"
+              class="flex-1 flex items-center justify-center gap-1.5 rounded-md py-1.5 px-3 text-xs transition cursor-pointer"
             >
               <svg class="h-3.5 w-3.5 fill-current" viewBox="0 0 24 24">
                 <path
@@ -284,13 +314,16 @@ async function copySelectedLink() {
         </div>
 
         <!-- Modal Body Content -->
-        <div class="flex-1 overflow-y-auto px-5 sm:px-6 py-4 space-y-4">
+        <div class="flex-1 overflow-y-auto px-5 sm:px-6 py-4 space-y-3.5">
           <!-- Google Status Alert Banners -->
           <div
             v-if="actionError"
-            class="flex items-start gap-2.5 rounded-xl border border-[#f28b82]/50 bg-[#fce8e6] dark:bg-[#4a2422]/60 p-3 text-xs text-[#d93025] dark:text-[#f28b82] font-medium leading-relaxed"
+            class="flex items-start gap-2.5 rounded-lg border border-[#f28b82]/50 bg-[#fce8e6] dark:bg-[#4a2422]/60 p-3 text-xs text-[#d93025] dark:text-[#f28b82] font-medium leading-relaxed"
           >
-            <svg class="h-4 w-4 flex-shrink-0 fill-current mt-0.5" viewBox="0 0 24 24">
+            <svg
+              class="h-4 w-4 flex-shrink-0 fill-current mt-0.5"
+              viewBox="0 0 24 24"
+            >
               <path
                 d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"
               />
@@ -300,9 +333,12 @@ async function copySelectedLink() {
 
           <div
             v-else-if="actionSuccess"
-            class="flex items-start gap-2.5 rounded-xl border border-[#a8dab5]/50 bg-[#e6f4ea] dark:bg-[#234024]/60 p-3 text-xs text-[#137333] dark:text-[#81c995] font-medium leading-relaxed"
+            class="flex items-start gap-2.5 rounded-lg border border-[#a8dab5]/50 bg-[#e6f4ea] dark:bg-[#234024]/60 p-3 text-xs text-[#137333] dark:text-[#81c995] font-medium leading-relaxed"
           >
-            <svg class="h-4 w-4 flex-shrink-0 fill-current mt-0.5" viewBox="0 0 24 24">
+            <svg
+              class="h-4 w-4 flex-shrink-0 fill-current mt-0.5"
+              viewBox="0 0 24 24"
+            >
               <path
                 d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"
               />
@@ -310,29 +346,34 @@ async function copySelectedLink() {
             <span class="flex-1">{{ actionSuccess }}</span>
           </div>
 
-          <!-- TAB 1: SHARE BOOKMARK (Google Drive / Keep style) -->
-          <div v-if="activeTab === 'share'" class="space-y-4">
-            <!-- 1. Bookmark Selection Card -->
+          <!-- TAB 1: SHARE BOOKMARK (Google Keep Collaborator Style) -->
+          <div v-if="activeTab === 'share'" class="space-y-3.5">
+            <!-- 1. Bookmark Selection Box -->
             <div
-              class="rounded-2xl border border-[#dadce0] dark:border-[#3c4043] bg-[#f8f9fa] dark:bg-[#303134]/40 p-3.5 sm:p-4"
+              class="rounded-lg border border-[#dadce0] dark:border-[#3c4043] bg-[#f8f9fa] dark:bg-[#303134]/30 p-3.5"
             >
               <div class="flex items-center justify-between mb-2">
-                <span class="text-xs font-semibold uppercase tracking-wider text-[#5f6368] dark:text-[#9aa0a6]">
+                <span
+                  class="text-[11px] font-semibold uppercase tracking-wider text-[#5f6368] dark:text-[#9aa0a6]"
+                >
                   Bookmark to Share
                 </span>
-                <span v-if="bookmarks.length > 0" class="text-[11px] text-[#5f6368] dark:text-[#9aa0a6]">
+                <span
+                  v-if="bookmarks.length > 0"
+                  class="text-[11px] text-[#5f6368] dark:text-[#9aa0a6]"
+                >
                   {{ bookmarks.length }} in collection
                 </span>
               </div>
 
-              <!-- Selected Bookmark Google Card -->
+              <!-- Selected Bookmark Keep Card -->
               <div
                 v-if="selectedBookmark"
-                class="flex items-center justify-between gap-3 rounded-xl border border-[#dadce0] dark:border-[#3c4043] bg-white dark:bg-[#202124] p-3 shadow-sm"
+                class="flex items-center justify-between gap-3 rounded-md border border-[#dadce0] dark:border-[#3c4043] bg-white dark:bg-[#202124] p-2.5 shadow-none"
               >
-                <div class="flex items-center gap-3 min-w-0 flex-1">
+                <div class="flex items-center gap-2.5 min-w-0 flex-1">
                   <div
-                    class="h-8 w-8 flex-shrink-0 flex items-center justify-center rounded-lg bg-[#f1f3f4] dark:bg-[#303134] overflow-hidden border border-[#dadce0]/50 dark:border-white/5"
+                    class="h-7 w-7 flex-shrink-0 flex items-center justify-center rounded bg-[#f1f3f4] dark:bg-[#303134] overflow-hidden border border-[#dadce0]/50 dark:border-white/5"
                   >
                     <img
                       :src="favicon(selectedBookmark.link)"
@@ -342,31 +383,37 @@ async function copySelectedLink() {
                     />
                   </div>
                   <div class="min-w-0 flex-1">
-                    <p class="truncate text-xs font-semibold text-[#202124] dark:text-[#e8eaed]">
+                    <p
+                      class="truncate text-xs font-semibold text-[#202124] dark:text-[#e8eaed]"
+                    >
                       {{ selectedBookmark.name }}
                     </p>
-                    <p class="truncate text-[11px] text-[#5f6368] dark:text-[#9aa0a6] mt-0.5">
+                    <p
+                      class="truncate text-[11px] text-[#5f6368] dark:text-[#9aa0a6] mt-0.5"
+                    >
                       {{ domain(selectedBookmark.link) }}
                       <span class="mx-1">•</span>
-                      <span class="inline-block px-1.5 py-0.2 rounded bg-amber-500/10 text-amber-700 dark:text-amber-400 font-medium text-[10px]">
+                      <span
+                        class="inline-block px-1.5 py-0.2 rounded bg-amber-500/10 text-amber-700 dark:text-amber-400 font-medium text-[10px]"
+                      >
                         #{{ selectedBookmark.folderName || "General" }}
                       </span>
                     </p>
                   </div>
                 </div>
 
-                <div class="flex items-center gap-1.5 flex-shrink-0">
+                <div class="flex items-center gap-1 flex-shrink-0">
                   <button
                     @click="isBookmarkPickerOpen = !isBookmarkPickerOpen"
                     type="button"
-                    class="rounded-full border border-[#dadce0] dark:border-[#5f6368] px-3 py-1 text-xs text-[#1a73e8] dark:text-[#8ab4f8] hover:bg-[#1a73e8]/5 dark:hover:bg-[#8ab4f8]/10 transition font-medium cursor-pointer"
+                    class="rounded-md border border-[#dadce0] dark:border-[#5f6368] px-2.5 py-1 text-xs text-[#1a73e8] dark:text-[#8ab4f8] hover:bg-[#1a73e8]/5 dark:hover:bg-[#8ab4f8]/10 transition font-medium cursor-pointer"
                   >
                     Change
                   </button>
                   <button
                     @click="clearSelectedBookmark"
                     type="button"
-                    class="h-7 w-7 rounded-full flex items-center justify-center text-[#5f6368] dark:text-[#9aa0a6] hover:bg-black/5 dark:hover:bg-white/10 transition cursor-pointer"
+                    class="h-7 w-7 rounded-md flex items-center justify-center text-[#5f6368] dark:text-[#9aa0a6] hover:bg-black/5 dark:hover:bg-white/10 transition cursor-pointer"
                     title="Clear selection"
                   >
                     <svg class="h-3.5 w-3.5 fill-current" viewBox="0 0 24 24">
@@ -379,7 +426,10 @@ async function copySelectedLink() {
               </div>
 
               <!-- Empty selection or Change picker -->
-              <div v-if="!selectedBookmark || isBookmarkPickerOpen" class="space-y-2 mt-2">
+              <div
+                v-if="!selectedBookmark || isBookmarkPickerOpen"
+                class="space-y-2 mt-2"
+              >
                 <div class="relative">
                   <svg
                     class="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[#5f6368] dark:text-[#9aa0a6]"
@@ -394,16 +444,16 @@ async function copySelectedLink() {
                     v-model="bookmarkSearch"
                     type="text"
                     placeholder="Search bookmark to share..."
-                    class="w-full rounded-lg border border-[#dadce0] dark:border-[#5f6368] bg-white dark:bg-[#202124] pl-9 pr-3 py-2 text-xs text-[#202124] dark:text-[#e8eaed] placeholder-[#9aa0a6] dark:placeholder-[#5f6368] outline-none focus:border-[#1a73e8] dark:focus:border-[#8ab4f8] focus:ring-1 focus:ring-[#1a73e8] dark:focus:ring-[#8ab4f8]"
+                    class="w-full rounded-md border border-[#dadce0] dark:border-[#5f6368] bg-white dark:bg-[#202124] pl-9 pr-3 py-1.5 text-xs text-[#202124] dark:text-[#e8eaed] placeholder-[#9aa0a6] dark:placeholder-[#5f6368] outline-none focus:border-amber-500 dark:focus:border-amber-400 focus:ring-1 focus:ring-amber-400/30"
                   />
                 </div>
 
                 <div
-                  class="max-h-44 overflow-y-auto rounded-xl border border-[#dadce0] dark:border-[#3c4043] bg-white dark:bg-[#202124] p-1.5 space-y-1"
+                  class="max-h-44 overflow-y-auto rounded-lg border border-[#dadce0] dark:border-[#3c4043] bg-white dark:bg-[#202124] p-1 space-y-0.5"
                 >
                   <div
                     v-if="filteredShareBookmarks.length === 0"
-                    class="py-5 text-center text-xs text-[#5f6368] dark:text-[#9aa0a6]"
+                    class="py-4 text-center text-xs text-[#5f6368] dark:text-[#9aa0a6]"
                   >
                     No bookmarks found.
                   </div>
@@ -411,10 +461,10 @@ async function copySelectedLink() {
                     v-for="bookmark in filteredShareBookmarks"
                     :key="bookmark.id"
                     @click="selectBookmark(bookmark)"
-                    class="flex items-center gap-2.5 rounded-lg p-2 transition cursor-pointer hover:bg-[#f1f3f4] dark:hover:bg-[#303134]"
+                    class="flex items-center gap-2.5 rounded-md p-2 transition cursor-pointer hover:bg-[#f1f3f4] dark:hover:bg-[#303134]"
                     :class="
                       String(selectedBookmarkId) === String(bookmark.id)
-                        ? 'bg-[#e8f0fe] dark:bg-[#1a3644] text-[#1a73e8] dark:text-[#8ab4f8]'
+                        ? 'bg-[#feefc0] dark:bg-[#41331c] text-[#202124] dark:text-[#feefc0] font-medium'
                         : ''
                     "
                   >
@@ -429,10 +479,14 @@ async function copySelectedLink() {
                       />
                     </div>
                     <div class="min-w-0 flex-1">
-                      <p class="truncate text-xs font-medium text-[#202124] dark:text-[#e8eaed]">
+                      <p
+                        class="truncate text-xs font-medium text-[#202124] dark:text-[#e8eaed]"
+                      >
                         {{ bookmark.name }}
                       </p>
-                      <p class="truncate text-[10px] text-[#5f6368] dark:text-[#9aa0a6]">
+                      <p
+                        class="truncate text-[10px] text-[#5f6368] dark:text-[#9aa0a6]"
+                      >
                         {{ domain(bookmark.link) }}
                       </p>
                     </div>
@@ -446,15 +500,19 @@ async function copySelectedLink() {
 
             <!-- 2. Recipient Input & Collaborator Selection -->
             <div
-              class="rounded-2xl border border-[#dadce0] dark:border-[#3c4043] bg-[#f8f9fa] dark:bg-[#303134]/40 p-3.5 sm:p-4"
+              class="rounded-lg border border-[#dadce0] dark:border-[#3c4043] bg-[#f8f9fa] dark:bg-[#303134]/30 p-3.5"
             >
-              <span class="text-xs font-semibold uppercase tracking-wider text-[#5f6368] dark:text-[#9aa0a6] block mb-2">
+              <span
+                class="text-[11px] font-semibold uppercase tracking-wider text-[#5f6368] dark:text-[#9aa0a6] block mb-2"
+              >
                 Add People & Collaborators
               </span>
 
               <!-- Quick Friends Chips -->
-              <div v-if="friends.length > 0" class="mb-3">
-                <p class="text-[11px] text-[#5f6368] dark:text-[#9aa0a6] mb-1.5">
+              <div v-if="friends.length > 0" class="mb-2.5">
+                <p
+                  class="text-[11px] text-[#5f6368] dark:text-[#9aa0a6] mb-1.5"
+                >
                   Connected Friends:
                 </p>
                 <div class="flex flex-wrap gap-1.5">
@@ -463,15 +521,15 @@ async function copySelectedLink() {
                     :key="friend.uid"
                     @click="selectFriendForShare(friend.email)"
                     type="button"
-                    class="inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs transition cursor-pointer"
+                    class="inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs transition cursor-pointer"
                     :class="
                       shareEmail?.toLowerCase() === friend.email?.toLowerCase()
-                        ? 'border-[#1a73e8] bg-[#1a73e8]/10 text-[#1a73e8] dark:text-[#8ab4f8] font-semibold'
+                        ? 'border-amber-500 bg-[#feefc0] dark:bg-[#41331c] text-[#202124] dark:text-[#feefc0] font-semibold'
                         : 'border-[#dadce0] dark:border-[#5f6368] bg-white dark:bg-[#202124] text-[#3c4043] dark:text-[#e8eaed] hover:bg-[#f1f3f4] dark:hover:bg-[#303134]'
                     "
                   >
                     <span
-                      class="h-4 w-4 rounded-full bg-[#1a73e8] text-white flex items-center justify-center text-[9px] font-bold"
+                      class="h-4 w-4 rounded bg-amber-500 text-white flex items-center justify-center text-[9px] font-bold"
                     >
                       {{ friend.email?.charAt(0).toUpperCase() }}
                     </span>
@@ -480,26 +538,26 @@ async function copySelectedLink() {
                 </div>
               </div>
 
-              <!-- Recipient Email Input with Google Outlined Field -->
+              <!-- Recipient Email Input -->
               <div class="relative">
                 <input
                   :value="shareEmail"
                   @input="updateShareEmail"
                   type="email"
                   placeholder="Enter email address (e.g. friend@gmail.com)"
-                  class="w-full rounded-lg border border-[#dadce0] dark:border-[#5f6368] bg-white dark:bg-[#202124] px-3.5 py-2.5 text-xs sm:text-sm text-[#202124] dark:text-[#e8eaed] placeholder-[#9aa0a6] dark:placeholder-[#5f6368] outline-none transition focus:border-[#1a73e8] dark:focus:border-[#8ab4f8] focus:ring-1 focus:ring-[#1a73e8] dark:focus:ring-[#8ab4f8]"
+                  class="w-full rounded-md border border-[#dadce0] dark:border-[#5f6368] bg-white dark:bg-[#202124] px-3.5 py-2 text-xs sm:text-sm text-[#202124] dark:text-[#e8eaed] placeholder-[#9aa0a6] dark:placeholder-[#5f6368] outline-none transition focus:border-amber-500 dark:focus:border-amber-400 focus:ring-1 focus:ring-amber-400/30"
                 />
               </div>
             </div>
 
-            <!-- 3. General Access Info Note -->
+            <!-- 3. General Access Info Note (Keep Minimal) -->
             <div
-              class="flex items-start gap-3 rounded-2xl border border-[#dadce0] dark:border-[#3c4043] bg-white dark:bg-[#202124] p-3.5 text-xs text-[#5f6368] dark:text-[#9aa0a6]"
+              class="flex items-start gap-2.5 rounded-lg border border-[#dadce0] dark:border-[#3c4043] bg-white dark:bg-[#202124] p-3 text-xs text-[#5f6368] dark:text-[#9aa0a6]"
             >
               <div
-                class="h-7 w-7 rounded-full bg-amber-400/15 text-amber-600 dark:text-amber-400 flex items-center justify-center flex-shrink-0 mt-0.5"
+                class="h-6 w-6 rounded bg-amber-400/15 text-amber-600 dark:text-amber-400 flex items-center justify-center flex-shrink-0 mt-0.5"
               >
-                <svg class="h-4 w-4 fill-current" viewBox="0 0 24 24">
+                <svg class="h-3.5 w-3.5 fill-current" viewBox="0 0 24 24">
                   <path
                     d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"
                   />
@@ -510,21 +568,22 @@ async function copySelectedLink() {
                   Shared directly to friend's bk Keep Bookmarks
                 </p>
                 <p class="mt-0.5 text-[11px] leading-relaxed">
-                  The recipient will see this bookmark inside their "Shared with Me" label with your sender note.
+                  The recipient will see this bookmark inside their "Shared with
+                  Me" label with your sender note.
                 </p>
               </div>
             </div>
 
             <!-- Bottom Action Footer -->
             <div
-              class="flex items-center justify-between pt-2 border-t border-[#dadce0] dark:border-[#3c4043]"
+              class="flex items-center justify-between pt-2.5 border-t border-[#dadce0] dark:border-[#3c4043]"
             >
-              <!-- Copy Link Button (Drive Style) -->
+              <!-- Copy Link Button (Keep Style) -->
               <button
                 @click="copySelectedLink"
                 :disabled="!selectedBookmark?.link"
                 type="button"
-                class="inline-flex items-center gap-1.5 rounded-full border border-[#dadce0] dark:border-[#5f6368] hover:bg-[#f1f3f4] dark:hover:bg-[#303134] text-[#1a73e8] dark:text-[#8ab4f8] px-3.5 py-2 text-xs font-medium transition disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                class="inline-flex items-center gap-1.5 rounded-md border border-[#dadce0] dark:border-[#5f6368] hover:bg-[#f1f3f4] dark:hover:bg-[#303134] text-[#1a73e8] dark:text-[#8ab4f8] px-3.5 py-1.5 text-xs font-medium transition disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
               >
                 <svg class="h-3.5 w-3.5 fill-current" viewBox="0 0 24 24">
                   <path
@@ -534,12 +593,12 @@ async function copySelectedLink() {
                 <span>{{ linkCopied ? "Link Copied!" : "Copy link" }}</span>
               </button>
 
-              <!-- Send Button (Google Blue Pill) -->
+              <!-- Send Button (Google Keep Style Solid Button) -->
               <button
                 @click="$emit('share-bookmark')"
                 :disabled="!selectedBookmarkId || !shareEmail?.trim()"
                 type="button"
-                class="inline-flex items-center justify-center gap-2 rounded-full bg-[#1a73e8] hover:bg-[#1557b0] dark:bg-[#8ab4f8] dark:hover:bg-[#93bbf9] text-white dark:text-[#202124] px-6 py-2 text-xs font-semibold shadow-sm hover:shadow transition disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                class="inline-flex items-center justify-center gap-2 rounded-md bg-[#1a73e8] hover:bg-[#1557b0] dark:bg-[#8ab4f8] dark:hover:bg-[#93bbf9] text-white dark:text-[#202124] px-5 py-1.5 text-xs font-semibold shadow-none transition disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
               >
                 <span>Send Bookmark</span>
                 <svg class="h-3.5 w-3.5 fill-current" viewBox="0 0 24 24">
@@ -550,12 +609,14 @@ async function copySelectedLink() {
           </div>
 
           <!-- TAB 2: FRIENDS & COLLABORATORS -->
-          <div v-else-if="activeTab === 'friends'" class="space-y-4">
+          <div v-else-if="activeTab === 'friends'" class="space-y-3.5">
             <!-- Add Friend Card -->
             <div
-              class="rounded-2xl border border-[#dadce0] dark:border-[#3c4043] bg-[#f8f9fa] dark:bg-[#303134]/40 p-4"
+              class="rounded-lg border border-[#dadce0] dark:border-[#3c4043] bg-[#f8f9fa] dark:bg-[#303134]/30 p-3.5"
             >
-              <span class="text-xs font-semibold uppercase tracking-wider text-[#5f6368] dark:text-[#9aa0a6] block mb-2">
+              <span
+                class="text-[11px] font-semibold uppercase tracking-wider text-[#5f6368] dark:text-[#9aa0a6] block mb-2"
+              >
                 Add Friend by Email
               </span>
               <div class="flex gap-2">
@@ -564,12 +625,12 @@ async function copySelectedLink() {
                   @input="updateFriendEmail"
                   type="email"
                   placeholder="colleague@example.com"
-                  class="flex-1 rounded-lg border border-[#dadce0] dark:border-[#5f6368] bg-white dark:bg-[#202124] px-3.5 py-2 text-xs text-[#202124] dark:text-[#e8eaed] placeholder-[#9aa0a6] dark:placeholder-[#5f6368] outline-none transition focus:border-[#1a73e8] dark:focus:border-[#8ab4f8]"
+                  class="flex-1 rounded-md border border-[#dadce0] dark:border-[#5f6368] bg-white dark:bg-[#202124] px-3 py-1.5 text-xs text-[#202124] dark:text-[#e8eaed] placeholder-[#9aa0a6] dark:placeholder-[#5f6368] outline-none transition focus:border-amber-500 dark:focus:border-amber-400"
                 />
                 <button
                   @click="$emit('add-friend')"
                   type="button"
-                  class="rounded-full bg-[#1a73e8] hover:bg-[#1557b0] dark:bg-[#8ab4f8] dark:hover:bg-[#93bbf9] text-white dark:text-[#202124] px-4 py-2 text-xs font-semibold shadow-sm transition cursor-pointer"
+                  class="rounded-md bg-[#1a73e8] hover:bg-[#1557b0] dark:bg-[#8ab4f8] dark:hover:bg-[#93bbf9] text-white dark:text-[#202124] px-4 py-1.5 text-xs font-semibold transition cursor-pointer"
                 >
                   Send Invite
                 </button>
@@ -578,10 +639,12 @@ async function copySelectedLink() {
 
             <!-- Incoming Friend Requests -->
             <div
-              class="rounded-2xl border border-[#dadce0] dark:border-[#3c4043] bg-[#f8f9fa] dark:bg-[#303134]/40 p-4"
+              class="rounded-lg border border-[#dadce0] dark:border-[#3c4043] bg-[#f8f9fa] dark:bg-[#303134]/30 p-3.5"
             >
-              <div class="mb-3 flex items-center justify-between">
-                <span class="text-xs font-semibold uppercase tracking-wider text-[#5f6368] dark:text-[#9aa0a6]">
+              <div class="mb-2.5 flex items-center justify-between">
+                <span
+                  class="text-[11px] font-semibold uppercase tracking-wider text-[#5f6368] dark:text-[#9aa0a6]"
+                >
                   Incoming Friend Requests
                 </span>
                 <span
@@ -600,7 +663,7 @@ async function copySelectedLink() {
               </div>
               <div
                 v-else-if="friendRequests.length === 0"
-                class="rounded-xl border border-dashed border-[#dadce0] dark:border-[#3c4043] bg-white/50 dark:bg-[#202124]/50 p-4 text-center text-xs text-[#5f6368] dark:text-[#9aa0a6]"
+                class="rounded-md border border-dashed border-[#dadce0] dark:border-[#3c4043] bg-white/50 dark:bg-[#202124]/50 p-3 text-center text-xs text-[#5f6368] dark:text-[#9aa0a6]"
               >
                 No pending requests.
               </div>
@@ -608,15 +671,17 @@ async function copySelectedLink() {
                 <div
                   v-for="request in friendRequests"
                   :key="request.fromUid"
-                  class="flex items-center justify-between gap-3 rounded-xl border border-[#dadce0] dark:border-[#3c4043] bg-white dark:bg-[#202124] p-3 shadow-sm"
+                  class="flex items-center justify-between gap-3 rounded-md border border-[#dadce0] dark:border-[#3c4043] bg-white dark:bg-[#202124] p-2.5 shadow-none"
                 >
                   <div class="flex items-center gap-2.5 min-w-0 flex-1">
                     <div
-                      class="h-7 w-7 rounded-full bg-amber-500 text-white flex items-center justify-center text-xs font-bold flex-shrink-0"
+                      class="h-7 w-7 rounded-md bg-amber-500 text-white flex items-center justify-center text-xs font-bold flex-shrink-0"
                     >
                       {{ request.fromEmail?.charAt(0).toUpperCase() }}
                     </div>
-                    <span class="truncate text-xs font-medium text-[#202124] dark:text-[#e8eaed]">
+                    <span
+                      class="truncate text-xs font-medium text-[#202124] dark:text-[#e8eaed]"
+                    >
                       {{ request.fromEmail }}
                     </span>
                   </div>
@@ -625,14 +690,14 @@ async function copySelectedLink() {
                     <button
                       @click="$emit('approve-request', request)"
                       type="button"
-                      class="rounded-full bg-[#1a73e8] hover:bg-[#1557b0] text-white px-3 py-1 text-xs font-medium transition cursor-pointer"
+                      class="rounded-md bg-[#1a73e8] hover:bg-[#1557b0] text-white px-3 py-1 text-xs font-medium transition cursor-pointer"
                     >
                       Accept
                     </button>
                     <button
                       @click="$emit('delete-request', request)"
                       type="button"
-                      class="rounded-full border border-[#dadce0] dark:border-[#5f6368] text-[#5f6368] dark:text-[#9aa0a6] hover:bg-black/5 dark:hover:bg-white/10 px-3 py-1 text-xs font-medium transition cursor-pointer"
+                      class="rounded-md border border-[#dadce0] dark:border-[#5f6368] text-[#5f6368] dark:text-[#9aa0a6] hover:bg-black/5 dark:hover:bg-white/10 px-3 py-1 text-xs font-medium transition cursor-pointer"
                     >
                       Ignore
                     </button>
@@ -643,13 +708,17 @@ async function copySelectedLink() {
 
             <!-- Connected Friends List -->
             <div
-              class="rounded-2xl border border-[#dadce0] dark:border-[#3c4043] bg-[#f8f9fa] dark:bg-[#303134]/40 p-4"
+              class="rounded-lg border border-[#dadce0] dark:border-[#3c4043] bg-[#f8f9fa] dark:bg-[#303134]/30 p-3.5"
             >
-              <div class="mb-3 flex items-center justify-between">
-                <span class="text-xs font-semibold uppercase tracking-wider text-[#5f6368] dark:text-[#9aa0a6]">
+              <div class="mb-2.5 flex items-center justify-between">
+                <span
+                  class="text-[11px] font-semibold uppercase tracking-wider text-[#5f6368] dark:text-[#9aa0a6]"
+                >
                   Connected Friends
                 </span>
-                <span class="text-xs font-medium text-[#5f6368] dark:text-[#9aa0a6]">
+                <span
+                  class="text-xs font-medium text-[#5f6368] dark:text-[#9aa0a6]"
+                >
                   {{ friends.length }} friends
                 </span>
               </div>
@@ -662,24 +731,26 @@ async function copySelectedLink() {
               </div>
               <div
                 v-else-if="friends.length === 0"
-                class="rounded-xl border border-dashed border-[#dadce0] dark:border-[#3c4043] bg-white/50 dark:bg-[#202124]/50 p-4 text-center text-xs text-[#5f6368] dark:text-[#9aa0a6]"
+                class="rounded-md border border-dashed border-[#dadce0] dark:border-[#3c4043] bg-white/50 dark:bg-[#202124]/50 p-3 text-center text-xs text-[#5f6368] dark:text-[#9aa0a6]"
               >
                 No friends added yet. Enter an email above to connect!
               </div>
-              <div v-else class="space-y-2">
+              <div v-else class="space-y-1.5">
                 <div
                   v-for="friend in friends"
                   :key="friend.uid"
-                  class="flex items-center justify-between gap-3 rounded-xl border border-[#dadce0] dark:border-[#3c4043] bg-white dark:bg-[#202124] p-3 shadow-sm"
+                  class="flex items-center justify-between gap-3 rounded-md border border-[#dadce0] dark:border-[#3c4043] bg-white dark:bg-[#202124] p-2.5 shadow-none"
                 >
                   <div class="flex items-center gap-2.5 min-w-0 flex-1">
                     <div
-                      class="h-8 w-8 flex-shrink-0 flex items-center justify-center rounded-full bg-[#1a73e8] text-white text-xs font-bold"
+                      class="h-7 w-7 flex-shrink-0 flex items-center justify-center rounded bg-amber-500/20 text-amber-700 dark:text-amber-400 text-xs font-bold border border-amber-500/30"
                     >
                       {{ friend.email?.charAt(0).toUpperCase() }}
                     </div>
                     <div class="min-w-0 flex-1">
-                      <p class="truncate text-xs font-medium text-[#202124] dark:text-[#e8eaed]">
+                      <p
+                        class="truncate text-xs font-medium text-[#202124] dark:text-[#e8eaed]"
+                      >
                         {{ friend.email }}
                       </p>
                       <p class="text-[10px] text-[#5f6368] dark:text-[#9aa0a6]">
@@ -692,14 +763,14 @@ async function copySelectedLink() {
                     <button
                       @click="quickShareWithFriend(friend)"
                       type="button"
-                      class="rounded-full border border-[#1a73e8] dark:border-[#8ab4f8] bg-[#1a73e8]/5 dark:bg-[#8ab4f8]/10 text-[#1a73e8] dark:text-[#8ab4f8] hover:bg-[#1a73e8]/15 px-3 py-1 text-xs font-medium transition cursor-pointer"
+                      class="rounded-md border border-[#dadce0] dark:border-[#5f6368] bg-[#f8f9fa] dark:bg-[#303134] text-[#1a73e8] dark:text-[#8ab4f8] hover:bg-[#1a73e8]/10 px-2.5 py-1 text-xs font-medium transition cursor-pointer"
                     >
                       Share Note
                     </button>
                     <button
                       @click="$emit('remove-friend', friend.uid)"
                       type="button"
-                      class="h-7 w-7 rounded-full flex items-center justify-center text-[#5f6368] dark:text-[#9aa0a6] hover:text-[#d93025] hover:bg-red-50 dark:hover:bg-red-950/20 transition cursor-pointer"
+                      class="h-7 w-7 rounded-md flex items-center justify-center text-[#5f6368] dark:text-[#9aa0a6] hover:text-[#d93025] hover:bg-red-50 dark:hover:bg-red-950/20 transition cursor-pointer"
                       title="Remove connection"
                     >
                       <svg class="h-3.5 w-3.5 fill-current" viewBox="0 0 24 24">
@@ -715,24 +786,38 @@ async function copySelectedLink() {
           </div>
 
           <!-- TAB 3: GOOGLE ACCOUNT & STATS -->
-          <div v-else-if="activeTab === 'profile'" class="space-y-4">
+          <div v-else-if="activeTab === 'profile'" class="space-y-3.5">
             <div
-              class="rounded-2xl border border-[#dadce0] dark:border-[#3c4043] bg-[#f8f9fa] dark:bg-[#303134]/40 p-5"
+              class="rounded-lg border border-[#dadce0] dark:border-[#3c4043] bg-[#f8f9fa] dark:bg-[#303134]/30 p-4"
             >
-              <div class="flex items-center gap-4">
+              <div class="flex items-center gap-3.5">
                 <div
-                  class="h-14 w-14 rounded-full flex items-center justify-center bg-[#1a73e8] dark:bg-[#8ab4f8] text-white dark:text-[#202124] text-xl font-bold shadow"
+                  class="h-12 w-12 rounded-full flex items-center justify-center bg-[#1a73e8] dark:bg-[#8ab4f8] text-white dark:text-[#202124] text-lg font-bold shadow-sm overflow-hidden"
                 >
-                  {{ authUser?.email?.charAt(0).toUpperCase() }}
+                  <img
+                    v-if="userAvatarUrl && !avatarLoadFailed"
+                    :src="userAvatarUrl"
+                    alt="Profile photo"
+                    class="w-full h-full object-cover rounded-full"
+                    referrerpolicy="no-referrer"
+                    @error="avatarLoadFailed = true"
+                  />
+                  <span v-else>{{ authUser?.email?.charAt(0).toUpperCase() }}</span>
                 </div>
                 <div class="min-w-0 flex-1">
-                  <div class="inline-flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-400 font-semibold uppercase tracking-wider mb-0.5">
+                  <div
+                    class="inline-flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-400 font-semibold uppercase tracking-wider mb-0.5"
+                  >
                     <span>bk Keep Account</span>
                   </div>
-                  <h3 class="truncate text-base font-medium text-[#202124] dark:text-[#e8eaed]">
+                  <h3
+                    class="truncate text-sm sm:text-base font-medium text-[#202124] dark:text-[#e8eaed]"
+                  >
                     {{ authUser?.email }}
                   </h3>
-                  <p class="text-[11px] text-[#5f6368] dark:text-[#9aa0a6] font-mono mt-0.5 truncate">
+                  <p
+                    class="text-[11px] text-[#5f6368] dark:text-[#9aa0a6] font-mono mt-0.5 truncate"
+                  >
                     User UID: {{ authUser?.uid }}
                   </p>
                 </div>
@@ -740,36 +825,46 @@ async function copySelectedLink() {
 
               <!-- Metrics -->
               <div
-                class="mt-5 grid grid-cols-2 gap-3 border-t border-[#dadce0] dark:border-[#3c4043] pt-4"
+                class="mt-4 grid grid-cols-2 gap-2.5 border-t border-[#dadce0] dark:border-[#3c4043] pt-3.5"
               >
                 <div
-                  class="rounded-xl bg-white dark:bg-[#202124] border border-[#dadce0] dark:border-[#3c4043] p-3 text-center shadow-sm"
+                  class="rounded-md bg-white dark:bg-[#202124] border border-[#dadce0] dark:border-[#3c4043] p-3 text-center"
                 >
-                  <p class="text-2xl font-normal text-[#202124] dark:text-[#e8eaed]">
+                  <p
+                    class="text-xl font-normal text-[#202124] dark:text-[#e8eaed]"
+                  >
                     {{ bookmarks.length }}
                   </p>
-                  <p class="text-[11px] text-[#5f6368] dark:text-[#9aa0a6] mt-0.5">
+                  <p
+                    class="text-[11px] text-[#5f6368] dark:text-[#9aa0a6] mt-0.5"
+                  >
                     Saved Bookmarks
                   </p>
                 </div>
                 <div
-                  class="rounded-xl bg-white dark:bg-[#202124] border border-[#dadce0] dark:border-[#3c4043] p-3 text-center shadow-sm"
+                  class="rounded-md bg-white dark:bg-[#202124] border border-[#dadce0] dark:border-[#3c4043] p-3 text-center"
                 >
-                  <p class="text-2xl font-normal text-[#202124] dark:text-[#e8eaed]">
+                  <p
+                    class="text-xl font-normal text-[#202124] dark:text-[#e8eaed]"
+                  >
                     {{ friends.length }}
                   </p>
-                  <p class="text-[11px] text-[#5f6368] dark:text-[#9aa0a6] mt-0.5">
+                  <p
+                    class="text-[11px] text-[#5f6368] dark:text-[#9aa0a6] mt-0.5"
+                  >
                     Connected Friends
                   </p>
                 </div>
               </div>
 
               <!-- Sign Out Button -->
-              <div class="mt-5 pt-3 border-t border-[#dadce0] dark:border-[#3c4043]">
+              <div
+                class="mt-4 pt-3 border-t border-[#dadce0] dark:border-[#3c4043]"
+              >
                 <button
                   @click="$emit('logout')"
                   type="button"
-                  class="inline-flex w-full items-center justify-center gap-2 rounded-full border border-[#dadce0] dark:border-[#5f6368] text-[#d93025] dark:text-[#f28b82] hover:bg-red-50 dark:hover:bg-red-950/20 py-2.5 px-4 text-xs font-semibold transition cursor-pointer"
+                  class="inline-flex w-full items-center justify-center gap-2 rounded-md border border-[#dadce0] dark:border-[#5f6368] text-[#d93025] dark:text-[#f28b82] hover:bg-red-50 dark:hover:bg-red-950/20 py-2 px-4 text-xs font-semibold transition cursor-pointer"
                 >
                   <svg class="h-4 w-4 fill-current" viewBox="0 0 24 24">
                     <path
@@ -785,4 +880,5 @@ async function copySelectedLink() {
       </section>
     </div>
   </transition>
+  </Teleport>
 </template>

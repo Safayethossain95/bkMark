@@ -13,6 +13,7 @@ import {
   doc,
   getDocs,
   limit,
+  orderBy,
   query,
   setDoc,
   updateDoc,
@@ -56,6 +57,10 @@ const accountActionError = ref("");
 const accountActionSuccess = ref("");
 const SHARED_FOLDER_NAME = "Shared with Me";
 const collapsedFolders = ref({});
+const publicBookmarks = ref([]);
+const publicLoading = ref(false);
+const commentsMap = ref({});
+const commentsLoadingMap = ref({});
 let isAuthInitialized = false;
 
 // Helpers & Memoization
@@ -329,6 +334,249 @@ export function useBookmarks() {
       console.error("Error loading bookmarks:", error);
     } finally {
       bookmarksLoading.value = false;
+    }
+  };
+
+  const loadPublicBookmarks = async () => {
+    publicLoading.value = true;
+    try {
+      let snapshot;
+      try {
+        const q = query(
+          collection(db, "publicBookmarks"),
+          orderBy("createdAt", "desc"),
+          limit(100)
+        );
+        snapshot = await getDocs(q);
+      } catch (orderErr) {
+        console.warn("Public bookmarks query without orderBy index:", orderErr?.message || orderErr);
+        const fallbackQ = query(collection(db, "publicBookmarks"), limit(100));
+        snapshot = await getDocs(fallbackQ);
+      }
+
+      const items = snapshot.docs.map((docSnap) => ({
+        id: docSnap.id,
+        ...docSnap.data(),
+      }));
+
+      // Sort descending by date
+      items.sort((a, b) => {
+        const timeA = a.createdAt?.toMillis
+          ? a.createdAt.toMillis()
+          : a.createdAt?.seconds
+          ? a.createdAt.seconds * 1000
+          : a.createdAt
+          ? new Date(a.createdAt).getTime()
+          : 0;
+        const timeB = b.createdAt?.toMillis
+          ? b.createdAt.toMillis()
+          : b.createdAt?.seconds
+          ? b.createdAt.seconds * 1000
+          : b.createdAt
+          ? new Date(b.createdAt).getTime()
+          : 0;
+        return timeB - timeA;
+      });
+
+      publicBookmarks.value = items;
+    } catch (error) {
+      console.error("Error loading public bookmarks:", error);
+    } finally {
+      publicLoading.value = false;
+    }
+  };
+
+  const publishToPublic = async (bookmark) => {
+    if (!bookmark?.name || !bookmark?.link) {
+      throw new Error("Bookmark title and URL are required.");
+    }
+    const payload = {
+      name: bookmark.name.trim(),
+      link: bookmark.link.trim(),
+      notes: (bookmark.notes || "").trim(),
+      folderName: (bookmark.folderName || "General").trim(),
+      color: bookmark.color || "#ffffff",
+      authorEmail: normalizeEmail(authUser.value?.email) || "Community User",
+      authorUid: userId.value || "anonymous",
+      createdAt: new Date(),
+    };
+
+    const docRef = await addDoc(collection(db, "publicBookmarks"), payload);
+    const newItem = { id: docRef.id, ...payload };
+    publicBookmarks.value.unshift(newItem);
+
+    // Save to user's personal bookmarks database as well
+    if (userId.value) {
+      try {
+        const existingIndex = bookmarks.value.findIndex(
+          (b) => b.link && b.link.trim().toLowerCase() === payload.link.toLowerCase()
+        );
+        if (existingIndex === -1) {
+          const userBookmarkData = {
+            userId: userId.value,
+            folderName: payload.folderName || "General",
+            name: payload.name,
+            link: payload.link,
+            notes: payload.notes || "",
+            color: payload.color || "#ffffff",
+            createdAt: new Date(),
+          };
+          const userDocRef = await addDoc(collection(db, "bookmarks"), userBookmarkData);
+          bookmarks.value.push({
+            id: userDocRef.id,
+            ...userBookmarkData,
+          });
+        } else {
+          // If already in collection, ensure notes are updated if new notes were provided
+          const existing = bookmarks.value[existingIndex];
+          if (payload.notes && !existing.notes) {
+            await updateDoc(doc(db, "bookmarks", existing.id), {
+              notes: payload.notes,
+              updatedAt: new Date(),
+            });
+            bookmarks.value[existingIndex].notes = payload.notes;
+          }
+        }
+      } catch (saveDbErr) {
+        console.error("Error saving published bookmark to personal bookmarks collection:", saveDbErr);
+      }
+    }
+
+    return newItem;
+  };
+
+  const deletePublicBookmark = async (id) => {
+    try {
+      await deleteDoc(doc(db, "publicBookmarks", id));
+      publicBookmarks.value = publicBookmarks.value.filter((b) => b.id !== id);
+    } catch (error) {
+      console.error("Error deleting public bookmark:", error);
+      throw error;
+    }
+  };
+
+  const savePublicBookmark = async (publicItem) => {
+    const customPayload = {
+      name: publicItem.name,
+      link: publicItem.link,
+      folderName: publicItem.folderName || "General",
+      notes: publicItem.notes ? `[Public] ${publicItem.notes}` : `Saved from Public Feed (${publicItem.authorEmail || "Public"})`,
+      color: publicItem.color || "#ffffff",
+    };
+    return await addBookmark(customPayload);
+  };
+
+  const loadComments = async (bookmarkId) => {
+    if (!bookmarkId) return [];
+    commentsLoadingMap.value[bookmarkId] = true;
+    try {
+      let snapshot;
+      try {
+        const q = query(
+          collection(db, "feedComments"),
+          where("bookmarkId", "==", String(bookmarkId)),
+          orderBy("createdAt", "asc")
+        );
+        snapshot = await getDocs(q);
+      } catch (orderErr) {
+        console.warn("Feed comments fallback without orderBy:", orderErr?.message || orderErr);
+        const fallbackQ = query(
+          collection(db, "feedComments"),
+          where("bookmarkId", "==", String(bookmarkId))
+        );
+        snapshot = await getDocs(fallbackQ);
+      }
+
+      const list = snapshot.docs.map((docSnap) => ({
+        id: docSnap.id,
+        ...docSnap.data(),
+      }));
+
+      list.sort((a, b) => {
+        const tA = a.createdAt?.toMillis
+          ? a.createdAt.toMillis()
+          : a.createdAt?.seconds
+          ? a.createdAt.seconds * 1000
+          : a.createdAt
+          ? new Date(a.createdAt).getTime()
+          : 0;
+        const tB = b.createdAt?.toMillis
+          ? b.createdAt.toMillis()
+          : b.createdAt?.seconds
+          ? b.createdAt.seconds * 1000
+          : b.createdAt
+          ? new Date(b.createdAt).getTime()
+          : 0;
+        return tA - tB;
+      });
+
+      commentsMap.value[bookmarkId] = list;
+      return list;
+    } catch (err) {
+      console.error("Error loading comments:", err);
+      return [];
+    } finally {
+      commentsLoadingMap.value[bookmarkId] = false;
+    }
+  };
+
+  const addComment = async (bookmarkId, text) => {
+    if (!bookmarkId || !text || !text.trim()) return null;
+    const newComment = {
+      bookmarkId: String(bookmarkId),
+      text: text.trim(),
+      authorEmail: normalizeEmail(authUser.value?.email) || "Anonymous",
+      authorUid: userId.value || "anonymous",
+      createdAt: new Date(),
+    };
+
+    try {
+      const docRef = await addDoc(collection(db, "feedComments"), newComment);
+      const saved = { id: docRef.id, ...newComment };
+      if (!commentsMap.value[bookmarkId]) {
+        commentsMap.value[bookmarkId] = [];
+      }
+      commentsMap.value[bookmarkId].push(saved);
+      return saved;
+    } catch (err) {
+      console.error("Error adding comment:", err);
+      throw err;
+    }
+  };
+
+  const deleteComment = async (bookmarkId, commentId) => {
+    try {
+      await deleteDoc(doc(db, "feedComments", commentId));
+      if (commentsMap.value[bookmarkId]) {
+        commentsMap.value[bookmarkId] = commentsMap.value[bookmarkId].filter(
+          (c) => c.id !== commentId
+        );
+      }
+    } catch (err) {
+      console.error("Error deleting comment:", err);
+      throw err;
+    }
+  };
+
+  const toggleLike = async (bookmark, isPublic = true) => {
+    if (!bookmark?.id) return;
+    const userIdentifier = normalizeEmail(authUser.value?.email) || userId.value || "guest";
+    if (!bookmark.likes) bookmark.likes = [];
+    const idx = bookmark.likes.indexOf(userIdentifier);
+    if (idx !== -1) {
+      bookmark.likes.splice(idx, 1);
+    } else {
+      bookmark.likes.push(userIdentifier);
+    }
+
+    try {
+      const collName = isPublic ? "publicBookmarks" : "bookmarks";
+      const docRef = doc(db, collName, bookmark.id);
+      await updateDoc(docRef, {
+        likes: bookmark.likes,
+      });
+    } catch (err) {
+      console.warn("Could not persist like to Firestore:", err?.message || err);
     }
   };
 
@@ -895,6 +1143,7 @@ export function useBookmarks() {
     isAuthInitialized = true;
 
     onAuthStateChanged(auth, async (user) => {
+      loadPublicBookmarks();
       if (user) {
         authUser.value = user;
         userId.value = user.uid;
@@ -979,6 +1228,18 @@ export function useBookmarks() {
     approveFriendRequest,
     deleteFriendRequest,
     shareBookmarkByEmail,
+    publicBookmarks,
+    publicLoading,
+    loadPublicBookmarks,
+    publishToPublic,
+    deletePublicBookmark,
+    savePublicBookmark,
+    commentsMap,
+    commentsLoadingMap,
+    loadComments,
+    addComment,
+    deleteComment,
+    toggleLike,
     collapseAllFolders,
     expandAllFolders,
     toggleFolderCollapse,
