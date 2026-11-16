@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Add to bkMark</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="popup-container">
+    <!-- Header -->
+    <header class="header">
+      <div class="brand">
+        <div class="brand-icon">
+          <svg viewBox="0 0 24 24" class="bulb-svg">
+            <path d="M9 21c0 .55.45 1 1 1h4c.55 0 1-.45 1-1v-1H9v1zm3-19C8.14 2 5 5.14 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26c1.81-1.27 3-3.36 3-5.74 0-3.86-3.14-7-7-7zm2.85 11.1l-.85.6V16h-4v-2.3l-.85-.6A5.006 5.006 0 0 1 7 9c0-2.76 2.24-5 5-5s5 2.24 5 5c0 1.63-.8 3.16-2.15 4.1z"/>
+          </svg>
+        </div>
+        <div class="brand-text">bk<span class="brand-accent">Keep</span></div>
+      </div>
+
+      <div class="header-actions">
+        <button id="themeToggleBtn" class="icon-btn" title="Toggle Theme">
+          <svg id="themeIcon" viewBox="0 0 24 24" class="action-svg">
+            <path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-.46-.04-.92-.1-1.36-.98 1.37-2.58 2.26-4.4 2.26-3.03 0-5.5-2.47-5.5-5.5 0-1.82.89-3.42 2.26-4.4-.44-.06-.9-.1-1.36-.1z"/>
+          </svg>
+        </button>
+
+        <a href="https://bk-mark.vercel.app/" target="_blank" class="icon-btn" title="Open bkMark Web App">
+          <svg viewBox="0 0 24 24" class="action-svg">
+            <path d="M19 19H5V5h7V3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z"/>
+          </svg>
+        </a>
+
+        <!-- User pill / Logout -->
+        <div id="userBadge" class="user-badge hidden">
+          <span id="userInitial" class="user-avatar">U</span>
+          <button id="logoutBtn" class="logout-btn" title="Sign out">
+            <svg viewBox="0 0 24 24" class="small-svg">
+              <path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="content">
+      <!-- Loading State -->
+      <div id="loadingView" class="state-view">
+        <div class="spinner"></div>
+        <p class="muted-text">Detecting active tab...</p>
+      </div>
+
+      <!-- Login View -->
+      <div id="loginView" class="state-view hidden">
+        <div class="auth-box">
+          <div class="auth-header">
+            <h3>Sign in to bkMark</h3>
+            <p class="auth-sub">Connect your account to save bookmarks directly to your cloud collection.</p>
+          </div>
+
+          <div id="authAlert" class="alert-box hidden"></div>
+
+          <!-- Official Google SSO Button -->
+          <button type="button" id="googleSignInBtn" class="google-btn">
+            <svg class="google-svg" viewBox="0 0 48 48">
+              <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+              <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+              <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.79l7.97-6.2z"/>
+              <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+            </svg>
+            <span class="btn-text">Continue with Google</span>
+            <div class="spinner-small hidden"></div>
+          </button>
+
+          <div class="auth-divider">
+            <span>or with email</span>
+          </div>
+
+          <form id="loginForm" class="auth-form">
+            <div class="form-group">
+              <label for="loginEmail">Email</label>
+              <input type="email" id="loginEmail" placeholder="your@email.com" required autocomplete="email">
+            </div>
+
+            <div class="form-group">
+              <label for="loginPassword">Password</label>
+              <input type="password" id="loginPassword" placeholder="••••••••" required autocomplete="current-password">
+            </div>
+
+            <button type="submit" id="loginSubmitBtn" class="primary-btn">
+              <span class="btn-text">Sign In</span>
+              <div class="spinner-small hidden"></div>
+            </button>
+          </form>
+
+          <div class="auth-divider">
+            <span>or</span>
+          </div>
+
+          <button id="openInWebAppDirectBtn" class="secondary-btn" type="button">
+            <svg viewBox="0 0 24 24" class="small-svg">
+              <path d="M19 19H5V5h7V3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z"/>
+            </svg>
+            <span>Save via bkMark Web App</span>
+          </button>
+
+          <p class="auth-footer-note">
+            Need an account?
+            <a href="https://bk-mark.vercel.app/" target="_blank" class="text-link">Sign up on bkMark</a>
+          </p>
+        </div>
+      </div>
+
+      <!-- Add Bookmark View (Authenticated) -->
+      <div id="addBookmarkView" class="state-view hidden">
+        <form id="bookmarkForm" class="bookmark-form">
+          <!-- Page Info Header Preview -->
+          <div class="page-preview-bar">
+            <img id="siteFavicon" class="favicon-img" src="" alt="" onerror="this.style.display='none'">
+            <span id="siteDomain" class="site-domain">domain.com</span>
+          </div>
+
+          <!-- Title Input -->
+          <div class="form-group">
+            <label for="bookmarkTitle">Title</label>
+            <input type="text" id="bookmarkTitle" placeholder="Bookmark title" required>
+          </div>
+
+          <!-- URL Input -->
+          <div class="form-group">
+            <label for="bookmarkUrl">URL</label>
+            <input type="url" id="bookmarkUrl" placeholder="https://..." required>
+          </div>
+
+          <!-- Folder / Label Selection -->
+          <div class="form-group">
+            <label for="bookmarkFolder">Folder / Label</label>
+            <input type="text" id="bookmarkFolder" placeholder="General" value="General">
+            <div id="folderChips" class="folder-chips">
+              <button type="button" class="chip active" data-folder="General">General</button>
+              <button type="button" class="chip" data-folder="Work">Work</button>
+              <button type="button" class="chip" data-folder="Reading">Reading</button>
+              <button type="button" class="chip" data-folder="Dev">Dev</button>
+              <button type="button" class="chip" data-folder="Design">Design</button>
+            </div>
+          </div>
+
+          <!-- Color Tokens (Google Keep Colors) -->
+          <div class="form-group">
+            <label>Card Color</label>
+            <div id="colorPalette" class="color-palette">
+              <!-- Rendered via JS -->
+            </div>
+          </div>
+
+          <!-- Notes Input -->
+          <div class="form-group">
+            <label for="bookmarkNotes">Notes <span class="optional">(optional)</span></label>
+            <textarea id="bookmarkNotes" rows="2" placeholder="Add a quick note or key takeaways..."></textarea>
+          </div>
+
+          <!-- Pin Toggle -->
+          <div class="pin-group">
+            <label class="checkbox-label" for="bookmarkPinned">
+              <input type="checkbox" id="bookmarkPinned">
+              <span class="custom-checkbox"></span>
+              <span class="pin-text">📌 Pin to top of bookmarks</span>
+            </label>
+          </div>
+
+          <!-- Actions -->
+          <div class="actions-row">
+            <button type="submit" id="saveBookmarkBtn" class="primary-btn">
+              <span class="btn-text">Add to bkMark</span>
+              <div class="spinner-small hidden"></div>
+            </button>
+          </div>
+
+          <!-- Web App Shortcut -->
+          <div class="secondary-actions">
+            <button type="button" id="openWebWithParamsBtn" class="text-btn">
+              <span>Or open in bkMark to edit</span>
+              <svg viewBox="0 0 24 24" class="tiny-svg">
+                <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/>
+              </svg>
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Success State -->
+      <div id="successView" class="state-view hidden">
+        <div class="success-card">
+          <div class="success-icon-wrap">
+            <svg viewBox="0 0 24 24" class="check-svg">
+              <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+            </svg>
+          </div>
+          <h3 id="successTitle">Saved to bkMark!</h3>
+          <p id="successSub" class="muted-text">Your bookmark was synced to your cloud collection.</p>
+          
+          <div class="success-actions">
+            <a href="https://bk-mark.vercel.app/" target="_blank" class="primary-btn view-btn">
+              <span>View in bkMark App</span>
+              <svg viewBox="0 0 24 24" class="small-svg">
+                <path d="M19 19H5V5h7V3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z"/>
+              </svg>
+            </a>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Global Toast Alert -->
+    <div id="toast" class="toast hidden">
+      <span id="toastDot" class="toast-dot">●</span>
+      <span id="toastMsg">Message</span>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

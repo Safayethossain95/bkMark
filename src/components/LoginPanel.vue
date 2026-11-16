@@ -34,6 +34,7 @@ const emit = defineEmits([
 ]);
 
 const showPassword = ref(false);
+const isExtAuth = ref(typeof window !== "undefined" && window.location.search.includes("ext_auth=1"));
 
 function setMode(mode) {
   emit("update:authMode", mode);
@@ -73,6 +74,9 @@ const formattedError = computed(() => {
   }
   if (err.includes("auth/invalid-email")) {
     return "Please enter a valid email address.";
+  }
+  if (err.includes("auth/unauthorized-domain")) {
+    return "Domain not authorized: 'bk-mark.vercel.app' must be added to Authorized domains in your Firebase Console.";
   }
   if (err.includes("auth/popup-closed-by-user")) {
     return "Sign-in was cancelled. Popup closed before completing.";
@@ -162,6 +166,15 @@ const formattedError = computed(() => {
         </svg>
         <span>Create account</span>
       </button>
+    </div>
+
+    <!-- Extension Connection Banner -->
+    <div
+      v-if="isExtAuth"
+      class="mb-4 rounded-2xl border border-amber-400/40 bg-amber-50 dark:bg-amber-950/40 p-3 text-xs text-amber-900 dark:text-amber-200 flex items-center gap-2.5"
+    >
+      <span class="text-lg">🔌</span>
+      <span><strong>Extension Sign-In:</strong> Sign in with Google below to link your bkMark browser extension.</span>
     </div>
 
     <!-- Official Google SSO Button -->
@@ -272,6 +285,15 @@ const formattedError = computed(() => {
         </svg>
         <div class="flex-1 font-medium">
           {{ formattedError }}
+          <div v-if="authError && authError.includes('unauthorized-domain')" class="mt-2 text-[11px] font-normal leading-normal">
+            <a
+              href="https://console.firebase.google.com/project/trackbookmark-956/authentication/settings"
+              target="_blank"
+              class="font-semibold underline text-[#d93025] dark:text-[#f28b82] hover:opacity-80 inline-flex items-center gap-1"
+            >
+              Open Firebase Console Settings to add bk-mark.vercel.app ↗
+            </a>
+          </div>
         </div>
       </div>
 

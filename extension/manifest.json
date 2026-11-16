@@ -1,0 +1,46 @@
+{
+  "manifest_version": 3,
+  "name": "bkMark - Bookmark Tracker",
+  "version": "1.0.1",
+  "description": "Quickly save and organize bookmarks from any tab to your bkMark app (bk-mark.vercel.app)",
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Add to bkMark",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://bk-mark.vercel.app/*",
+        "http://localhost:5173/*"
+      ],
+      "js": ["content.js"],
+      "run_at": "document_end"
+    }
+  ],
+  "permissions": [
+    "activeTab",
+    "storage"
+  ],
+  "host_permissions": [
+    "https://identitytoolkit.googleapis.com/*",
+    "https://firestore.googleapis.com/*",
+    "https://securetoken.googleapis.com/*",
+    "https://bk-mark.vercel.app/*",
+    "http://localhost:5173/*"
+  ]
+}
